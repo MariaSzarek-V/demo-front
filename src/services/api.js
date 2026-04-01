@@ -39,7 +39,8 @@ api.interceptors.response.use(
 export const userApi = {
   getCurrentUser: () => api.get('/user/me'),
   getAllUsers: () => api.get('/user'),
-  getUserById: (id) => api.get(`/user/${id}`)
+  getUserById: (id) => api.get(`/user/${id}`),
+  updateProfile: (data) => api.put('/user/profile', data)
 };
 
 // Game endpoints

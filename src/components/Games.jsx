@@ -117,15 +117,19 @@ function Games() {
                       {formatDate(game.gameDate)}
                     </span>
 
-                    <span className="game-teams" style={{ minWidth: '220px' }}>
-                      <span className={`fi fi-${game.homeCountryCode?.toLowerCase()} me-1`}></span>
-                      <span className="fw-bold">{game.homeTeam}</span>
-                      <strong className="text-primary mx-2">
+                    <div className="game-teams" style={{ minWidth: '220px' }}>
+                      <span className="home-team">
+                        <span className={`fi fi-${game.homeCountryCode?.toLowerCase()} me-1`}></span>
+                        <span className="fw-bold">{game.homeTeam}</span>
+                      </span>
+                      <strong className="game-score text-primary mx-2">
                         {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
                       </strong>
-                      <span className="fw-bold">{game.awayTeam}</span>
-                      <span className={`fi fi-${game.awayCountryCode?.toLowerCase()} ms-1`}></span>
-                    </span>
+                      <span className="away-team">
+                        <span className="fw-bold">{game.awayTeam}</span>
+                        <span className={`fi fi-${game.awayCountryCode?.toLowerCase()} ms-1`}></span>
+                      </span>
+                    </div>
                   </div>
 
                   {/* Typ, punkty i przyciski */}
@@ -138,7 +142,9 @@ function Games() {
                           color: 'white',
                           border: 'none',
                           pointerEvents: 'none',
-                          cursor: 'default'
+                          cursor: 'default',
+                          minWidth: '50px',
+                          padding: '4px 8px'
                         }}
                       >
                         {game.prediction.predictedHomeScore}:{game.prediction.predictedAwayScore}
@@ -155,23 +161,35 @@ function Games() {
                     )}
 
                     {!game.prediction && game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) && (
-                      <Link to={`/predictions/new/${game.id}`} className="btn btn-sm btn-primary me-1">
-                        <i className="fas fa-futbol"></i> Typuj
+                      <Link
+                        to={`/predictions/new/${game.id}`}
+                        className="btn btn-sm btn-primary me-1"
+                        style={{ minWidth: '38px', padding: '4px 8px' }}
+                        title="Typuj"
+                      >
+                        <i className="fas fa-plus"></i>
                       </Link>
                     )}
 
                     {game.prediction && game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) && (
                       <>
-                        <Link to={`/predictions/edit/${game.prediction.id}`} className="btn btn-sm btn-outline-primary me-1">
-                          <i className="fas fa-edit"></i> Edytuj
+                        <Link
+                          to={`/predictions/edit/${game.prediction.id}`}
+                          className="btn btn-sm btn-outline-primary me-1"
+                          style={{ minWidth: '38px', padding: '4px 8px' }}
+                          title="Edytuj"
+                        >
+                          <i className="fas fa-edit"></i>
                         </Link>
                         <Button
                           variant="outline-danger"
                           size="sm"
                           className="me-1"
+                          style={{ minWidth: '38px', padding: '4px 8px' }}
                           onClick={() => handleDeletePrediction(game.prediction.id)}
+                          title="Usuń"
                         >
-                          <i className="fas fa-trash"></i> Usuń
+                          <i className="fas fa-trash"></i>
                         </Button>
                       </>
                     )}

@@ -9,6 +9,7 @@ import Ranking from './components/Ranking';
 import Comments from './components/Comments';
 import GameResults from './components/GameResults';
 import PredictionForm from './components/PredictionForm';
+import Profile from './components/Profile';
 import Footer from './components/Footer';
 import './App.css';
 
@@ -32,6 +33,7 @@ function App() {
                         <Route path="/games" element={<Games />} />
                         <Route path="/ranking" element={<Ranking />} />
                         <Route path="/comments" element={<Comments />} />
+                        <Route path="/profile" element={<Profile />} />
                         <Route path="/results/:gameId" element={<GameResults />} />
                         <Route path="/predictions/new/:gameId" element={<PredictionForm />} />
                         <Route path="/predictions/edit/:predictionId" element={<PredictionForm />} />
