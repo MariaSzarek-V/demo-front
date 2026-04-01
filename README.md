@@ -110,3 +110,13 @@ Edit backend URL in `src/services/api.js`:
 ```javascript
 const API_BASE_URL = 'http://localhost:8080/api';
 ```
+![img.png](img.png)
+
+![img_1.png](img_1.png)
+
+![img_2.png](img_2.png)
+
+![img_3.png](img_3.png)
+
+
+
