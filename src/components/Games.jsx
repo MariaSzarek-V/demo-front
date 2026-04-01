@@ -96,12 +96,6 @@ function Games() {
 
   return (
     <Container fluid className="px-2 px-md-4 px-lg-5">
-      <div className="d-flex align-items-center justify-content-between mb-4">
-        <h1 className="h3 mb-0 text-gray-800">
-          <i className="fas fa-futbol text-primary"></i> Moje mecze
-        </h1>
-      </div>
-
       <Card className="border-start border-primary border-4 shadow mb-4">
         <Card.Body style={{ maxHeight: '500px', overflowY: 'auto' }}>
           {games && games.length > 0 ? (
@@ -137,9 +131,18 @@ function Games() {
                   {/* Typ, punkty i przyciski */}
                   <div className="game-actions d-flex align-items-center text-nowrap">
                     {game.prediction && (
-                      <Badge bg="info" className="me-2">
+                      <span
+                        className="me-2 btn btn-sm"
+                        style={{
+                          backgroundColor: '#fd7e14',
+                          color: 'white',
+                          border: 'none',
+                          pointerEvents: 'none',
+                          cursor: 'default'
+                        }}
+                      >
                         {game.prediction.predictedHomeScore}:{game.prediction.predictedAwayScore}
-                      </Badge>
+                      </span>
                     )}
 
                     {game.prediction?.points !== undefined && game.prediction?.points !== null && (

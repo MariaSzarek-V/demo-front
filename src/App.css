@@ -17,6 +17,7 @@ body {
   background-color: #f8f9fc;
   width: 100%;
   overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 #content {
@@ -64,6 +65,13 @@ body {
   color: white !important;
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 0.25rem;
+}
+
+.navbar .nav-link.active {
+  color: white !important;
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 0.25rem;
+  font-weight: 600;
 }
 
 .shadow {

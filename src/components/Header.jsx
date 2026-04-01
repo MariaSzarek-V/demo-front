@@ -14,7 +14,7 @@ function Header() {
   };
 
   return (
-    <Navbar bg="primary" variant="dark" expand="lg" className="topbar mb-4 static-top shadow">
+    <Navbar bg="primary" variant="dark" className="topbar mb-4 static-top shadow">
       <Container fluid>
         <div className="w-100">
           {/* Brand and User Row */}
@@ -52,38 +52,48 @@ function Header() {
             </NavDropdown>
           </div>
 
-          {/* Navigation Menu Row */}
-          <Nav className="navbar-nav">
+          {/* Navigation Menu Row - always horizontal */}
+          <div className="d-flex flex-row align-items-center" style={{ overflowX: 'auto', gap: '0.5rem' }}>
             <Nav.Link
               as={Link}
               to="/games"
-              className={`text-white ${location.pathname === '/games' ? 'active' : ''}`}
+              className={`text-white text-nowrap ${location.pathname === '/games' ? 'active' : ''}`}
+              style={{ padding: '0.25rem 0.75rem' }}
             >
               Mecze
             </Nav.Link>
             <Nav.Link
               as={Link}
               to="/ranking"
-              className={`text-white ${location.pathname === '/ranking' ? 'active' : ''}`}
+              className={`text-white text-nowrap ${location.pathname === '/ranking' ? 'active' : ''}`}
+              style={{ padding: '0.25rem 0.75rem' }}
             >
               Ranking
             </Nav.Link>
             <Nav.Link
               as={Link}
               to="/comments"
-              className={`text-white ${location.pathname === '/comments' ? 'active' : ''}`}
+              className={`text-white text-nowrap ${location.pathname === '/comments' ? 'active' : ''}`}
+              style={{ padding: '0.25rem 0.75rem' }}
             >
               Komentarze
             </Nav.Link>
-            <NavDropdown title="Admin" id="admin-dropdown" className="text-white">
-              <NavDropdown.Item as={Link} to="/admin/games">
-                Zarządzanie meczami
-              </NavDropdown.Item>
-              <NavDropdown.Item as={Link} to="/admin/games/new">
-                Dodaj mecz
-              </NavDropdown.Item>
-            </NavDropdown>
-          </Nav>
+            {user && user.userRole === 'ADMIN' && (
+              <NavDropdown
+                title="Admin"
+                id="admin-dropdown"
+                className="text-white text-nowrap"
+                style={{ padding: '0.25rem 0.75rem' }}
+              >
+                <NavDropdown.Item as={Link} to="/admin/games">
+                  Zarządzanie meczami
+                </NavDropdown.Item>
+                <NavDropdown.Item as={Link} to="/admin/games/new">
+                  Dodaj mecz
+                </NavDropdown.Item>
+              </NavDropdown>
+            )}
+          </div>
         </div>
       </Container>
     </Navbar>

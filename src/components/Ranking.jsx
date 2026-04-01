@@ -55,12 +55,6 @@ function Ranking() {
 
   return (
     <Container fluid className="px-2 px-md-4 px-lg-5">
-      <div className="d-flex align-items-center justify-content-between mb-4">
-        <h1 className="h3 mb-0 text-gray-800">
-          <i className="fas fa-trophy text-warning"></i> Ranking graczy
-        </h1>
-      </div>
-
       <Card className="border-start border-warning border-4 shadow mb-4">
         <Card.Body>
           <div className="text-xs fw-bold text-warning text-uppercase mb-2">
