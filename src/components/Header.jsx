@@ -1,10 +1,17 @@
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Navbar, Nav, NavDropdown, Container } from 'react-bootstrap';
-import { authApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 function Header() {
   const location = useLocation();
-  const username = "Maria Szarek";
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+  const username = user ? user.username : 'Użytkownik';
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
+  };
 
   return (
     <Navbar bg="primary" variant="dark" expand="lg" className="topbar mb-4 static-top shadow">
@@ -38,7 +45,7 @@ function Header() {
                 Powiadomienia
               </NavDropdown.Item>
               <NavDropdown.Divider />
-              <NavDropdown.Item onClick={() => authApi.logout()}>
+              <NavDropdown.Item onClick={handleLogout}>
                 <i className="fas fa-sign-out-alt fa-sm fa-fw me-2 text-muted"></i>
                 Wyloguj
               </NavDropdown.Item>

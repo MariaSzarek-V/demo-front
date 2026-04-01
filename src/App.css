@@ -246,3 +246,27 @@ body {
 .ranking-list > div:not(.text-center):hover {
   background-color: #f8f9fc !important;
 }
+
+/* Login page styles */
+.bg-login-image {
+  background: url('assets/hero.png');
+  background-position: center;
+  background-size: cover;
+  background-color: #4e73df;
+}
+
+.form-control-user {
+  font-size: 0.8rem;
+  border-radius: 10rem;
+  padding: 1.5rem 1rem;
+}
+
+.btn-user {
+  font-size: 0.8rem;
+  border-radius: 10rem;
+  padding: 0.75rem 1rem;
+}
+
+.min-vh-100 {
+  min-height: 100vh;
+}
