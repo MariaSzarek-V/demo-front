@@ -14,16 +14,19 @@ function Comments() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showReactionPicker, setShowReactionPicker] = useState(null);
+  const [showMoreReactionsPicker, setShowMoreReactionsPicker] = useState(null);
+  const [replyingTo, setReplyingTo] = useState(null);
   const [gifs, setGifs] = useState([]);
   const [gifSearchTerm, setGifSearchTerm] = useState('');
   const textareaRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const gifPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
+  const moreReactionsPickerRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const GIPHY_API_KEY = 'sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh'; // Public demo key
-  const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢', '🙏'];
+  const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢'];
 
   useEffect(() => {
     loadComments();
@@ -40,16 +43,19 @@ function Comments() {
       if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
         setShowReactionPicker(null);
       }
+      if (moreReactionsPickerRef.current && !moreReactionsPickerRef.current.contains(event.target)) {
+        setShowMoreReactionsPicker(null);
+      }
     };
 
-    if (showEmojiPicker || showGifPicker || showReactionPicker !== null) {
+    if (showEmojiPicker || showGifPicker || showReactionPicker !== null || showMoreReactionsPicker !== null) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showEmojiPicker, showGifPicker, showReactionPicker]);
+  }, [showEmojiPicker, showGifPicker, showReactionPicker, showMoreReactionsPicker]);
 
   useEffect(() => {
     if (showGifPicker) {
@@ -169,9 +175,14 @@ function Comments() {
       const sortedComments = response.data.reverse();
       setComments(sortedComments);
       setShowReactionPicker(null);
+      setShowMoreReactionsPicker(null);
     } catch (err) {
       console.error('Error updating reaction:', err);
     }
+  };
+
+  const handleMoreReactionEmojiClick = async (emojiObject, commentId) => {
+    await handleReactionClick(commentId, emojiObject.emoji);
   };
 
   const groupReactions = (reactions) => {
@@ -201,8 +212,13 @@ function Comments() {
 
     try {
       setSubmitting(true);
-      await commentApi.createComment({ text: newCommentText });
+      const commentData = {
+        text: newCommentText,
+        parentCommentId: replyingTo?.id || null
+      };
+      await commentApi.createComment(commentData);
       setNewCommentText('');
+      setReplyingTo(null);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
@@ -306,7 +322,16 @@ function Comments() {
                     </div>
 
                     {/* Message bubble */}
-                    <div style={{ position: 'relative', maxWidth: '70%' }}>
+                    <div
+                      style={{ position: 'relative', maxWidth: '70%' }}
+                      onMouseEnter={() => setShowReactionPicker(comment.id)}
+                      onMouseLeave={() => {
+                        if (showMoreReactionsPicker !== comment.id) {
+                          setShowReactionPicker(null);
+                        }
+                      }}
+                      onClick={() => setShowReactionPicker(comment.id)}
+                    >
                       <div
                         style={{
                           backgroundColor: isMyComment ? '#4e73df' : 'white',
@@ -318,6 +343,29 @@ function Comments() {
                           position: 'relative'
                         }}
                       >
+                        {/* Quoted message */}
+                        {comment.parentCommentId && (
+                          <div
+                            style={{
+                              backgroundColor: isMyComment ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)',
+                              borderLeft: `3px solid ${isMyComment ? 'rgba(255,255,255,0.5)' : '#4e73df'}`,
+                              padding: '6px 10px',
+                              marginBottom: '8px',
+                              borderRadius: '6px',
+                              fontSize: '0.85rem',
+                              opacity: 0.9
+                            }}
+                          >
+                            <div style={{ fontWeight: 'bold', marginBottom: '2px', fontSize: '0.75rem' }}>
+                              {comment.parentCommentUsername}
+                            </div>
+                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {comment.parentCommentText && comment.parentCommentText.length > 60
+                                ? comment.parentCommentText.substring(0, 60) + '...'
+                                : comment.parentCommentText}
+                            </div>
+                          </div>
+                        )}
                         {renderCommentText(comment.text)}
                       </div>
 
@@ -358,42 +406,15 @@ function Comments() {
                         </div>
                       )}
 
-                      {/* Add reaction button */}
-                      <button
-                        onClick={() => setShowReactionPicker(showReactionPicker === comment.id ? null : comment.id)}
-                        style={{
-                          position: 'absolute',
-                          bottom: '-8px',
-                          right: isMyComment ? 'auto' : '4px',
-                          left: isMyComment ? '4px' : 'auto',
-                          backgroundColor: 'white',
-                          border: '1px solid #ddd',
-                          borderRadius: '50%',
-                          width: '24px',
-                          height: '24px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          cursor: 'pointer',
-                          fontSize: '0.75rem',
-                          opacity: 0.7,
-                          transition: 'opacity 0.2s'
-                        }}
-                        onMouseEnter={(e) => e.target.style.opacity = '1'}
-                        onMouseLeave={(e) => e.target.style.opacity = '0.7'}
-                      >
-                        +
-                      </button>
-
                       {/* Reaction picker popup */}
                       {showReactionPicker === comment.id && (
                         <div
                           ref={reactionPickerRef}
                           style={{
                             position: 'absolute',
-                            bottom: '30px',
-                            left: isMyComment ? '4px' : 'auto',
-                            right: isMyComment ? 'auto' : '4px',
+                            top: '-50px',
+                            left: isMyComment ? 'auto' : '0',
+                            right: isMyComment ? '0' : 'auto',
                             backgroundColor: 'white',
                             border: '1px solid #ddd',
                             borderRadius: '24px',
@@ -402,6 +423,12 @@ function Comments() {
                             display: 'flex',
                             gap: '8px',
                             zIndex: 100
+                          }}
+                          onMouseEnter={() => setShowReactionPicker(comment.id)}
+                          onMouseLeave={() => {
+                            if (showMoreReactionsPicker !== comment.id) {
+                              setShowReactionPicker(null);
+                            }
                           }}
                         >
                           {QUICK_REACTIONS.map(emoji => (
@@ -422,6 +449,70 @@ function Comments() {
                               {emoji}
                             </button>
                           ))}
+                          {/* Reply button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setReplyingTo(comment);
+                              setShowReactionPicker(null);
+                              textareaRef.current?.focus();
+                            }}
+                            style={{
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              fontSize: '1.2rem',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              transition: 'transform 0.2s',
+                              color: '#858796'
+                            }}
+                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.3)'}
+                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                            title="Odpowiedz"
+                          >
+                            ↩️
+                          </button>
+                          {/* More reactions button */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowMoreReactionsPicker(comment.id);
+                              setShowReactionPicker(null);
+                            }}
+                            style={{
+                              backgroundColor: 'transparent',
+                              border: 'none',
+                              fontSize: '1.5rem',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              transition: 'transform 0.2s',
+                              color: '#858796'
+                            }}
+                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.3)'}
+                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
+                          >
+                            ➕
+                          </button>
+                        </div>
+                      )}
+
+                      {/* More reactions emoji picker */}
+                      {showMoreReactionsPicker === comment.id && (
+                        <div
+                          ref={moreReactionsPickerRef}
+                          style={{
+                            position: 'absolute',
+                            bottom: '30px',
+                            left: isMyComment ? '4px' : 'auto',
+                            right: isMyComment ? 'auto' : '4px',
+                            zIndex: 101
+                          }}
+                        >
+                          <EmojiPicker
+                            onEmojiClick={(emojiObject) => handleMoreReactionEmojiClick(emojiObject, comment.id)}
+                            width={300}
+                            height={400}
+                          />
                         </div>
                       )}
                     </div>
@@ -442,6 +533,43 @@ function Comments() {
       {/* Formularz dodawania komentarza - bez scrolla */}
       <Card className="shadow" style={{ flexShrink: 0 }}>
         <Card.Body style={{ position: 'relative' }}>
+          {/* Reply preview */}
+          {replyingTo && (
+            <div
+              style={{
+                backgroundColor: '#f0f0f0',
+                borderLeft: '3px solid #4e73df',
+                padding: '8px 12px',
+                marginBottom: '10px',
+                borderRadius: '4px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <div>
+                <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '2px' }}>
+                  Odpowiadasz na <strong>{replyingTo.username}</strong>
+                </div>
+                <div style={{ fontSize: '0.85rem', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '400px' }}>
+                  {replyingTo.text.length > 50 ? replyingTo.text.substring(0, 50) + '...' : replyingTo.text}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReplyingTo(null)}
+                style={{
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  fontSize: '1.2rem',
+                  cursor: 'pointer',
+                  color: '#858796'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+          )}
           <Form onSubmit={handleSubmit}>
             <div className="d-flex align-items-start gap-2">
               <Form.Control
