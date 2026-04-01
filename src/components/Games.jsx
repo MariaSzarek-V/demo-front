@@ -23,6 +23,8 @@ function Games() {
       const gamesData = gamesResponse.data;
       const predictionsData = predictionsResponse.data;
 
+      console.log('Games data from API:', gamesData[0]); // Debug - sprawdzamy strukturę
+
       // Merge games with predictions
       const gamesWithPredictions = gamesData.map(game => {
         const prediction = predictionsData.find(p => p.gameId === game.id);

@@ -10,6 +10,31 @@ const api = axios.create({
   }
 });
 
+// Response interceptor to map gameId -> id for compatibility
+api.interceptors.response.use(
+  (response) => {
+    if (response.data) {
+      // Map single object
+      if (response.data.gameId !== undefined) {
+        response.data.id = response.data.gameId;
+      }
+      // Map array of objects
+      if (Array.isArray(response.data)) {
+        response.data = response.data.map(item => {
+          if (item.gameId !== undefined) {
+            return { ...item, id: item.gameId };
+          }
+          return item;
+        });
+      }
+    }
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // User endpoints
 export const userApi = {
   getCurrentUser: () => api.get('/user/me'),
