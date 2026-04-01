@@ -138,30 +138,6 @@ body {
     text-align: center;
   }
 
-  .game-teams {
-    margin-top: 8px;
-    display: grid !important;
-    grid-template-columns: 1fr auto 1fr;
-    gap: 8px;
-    width: 100%;
-    align-items: center;
-  }
-
-  .home-team {
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  .game-score {
-    text-align: center;
-    white-space: nowrap;
-  }
-
-  .away-team {
-    text-align: left;
-    white-space: nowrap;
-  }
-
   .game-actions {
     margin-top: 8px;
   }
@@ -318,4 +294,67 @@ body {
 
 .min-vh-100 {
   min-height: 100vh;
+}
+
+/* Prediction hover popup */
+.prediction-hover:hover .prediction-actions-popup {
+  display: block !important;
+}
+
+.prediction-actions-popup {
+  animation: fadeInUp 0.2s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+/* Clickable game score for finished games */
+.game-score.text-decoration-none:hover {
+  text-decoration: underline !important;
+  color: #224abe !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+/* Hover effect for finished games - entire block */
+.game-item-finished {
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+}
+
+.game-item-finished:hover {
+  transform: scale(1.02) !important;
+  background-color: #f8f9fc !important;
+  box-shadow: 0 2px 8px rgba(78, 115, 223, 0.15) !important;
+}
+
+/* Target the score link/element */
+.game-item-finished:hover .game-score,
+.game-item-finished:hover a.game-score {
+  transform: scale(1.1) !important;
+  color: #224abe !important;
+  text-decoration: underline !important;
+}
+
+/* Target team names - both spans and divs */
+.game-item-finished:hover .home-team,
+.game-item-finished:hover .away-team,
+.game-item-finished:hover .home-team *,
+.game-item-finished:hover .away-team * {
+  color: #224abe !important;
+}
+
+.game-item-finished .game-score,
+.game-item-finished a.game-score,
+.game-item-finished .home-team,
+.game-item-finished .away-team {
+  transition: all 0.3s ease !important;
 }

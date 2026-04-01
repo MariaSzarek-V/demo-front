@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Container, Card, Button, Badge } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { gameApi, predictionApi } from '../services/api';
 
 function Games() {
+  const navigate = useNavigate();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -103,28 +104,100 @@ function Games() {
               {games.map((game) => (
                 <div
                   key={game.id}
-                  className="game-item d-flex flex-wrap justify-content-between align-items-center"
+                  className={`game-item ${game.gameStatus === 'FINISHED' ? 'game-item-finished' : ''}`}
                   style={{
                     padding: '8px',
                     borderRadius: '4px',
                     marginBottom: '8px',
-                    borderBottom: '1px solid #e3e6f0'
+                    borderBottom: '1px solid #e3e6f0',
+                    transition: 'all 0.2s ease'
                   }}
+                  onClick={() => game.gameStatus === 'FINISHED' && navigate(`/results/${game.id}`)}
                 >
                   {/* Data i drużyny */}
-                  <div className="game-header d-flex align-items-center flex-wrap">
-                    <span className="game-date text-muted me-3" style={{ minWidth: '140px' }}>
+                  <div className="mb-2">
+                    <span className="game-date text-muted d-block mb-1" style={{ fontSize: '0.85rem' }}>
                       {formatDate(game.gameDate)}
                     </span>
 
-                    <div className="game-teams" style={{ minWidth: '220px' }}>
+                    {/* Sprawdź czy nazwy są za długie - jeśli tak, użyj układu pionowego */}
+                    {((game.homeTeam?.length || 0) + (game.awayTeam?.length || 0)) > 24 ? (
+                      /* Układ pionowy (3 linie) dla długich nazw */
+                      <div className="d-flex d-md-none flex-column align-items-center" style={{ lineHeight: '1.4' }}>
+                        <div className="home-team text-center">
+                          <span className={`fi fi-${game.homeCountryCode?.toLowerCase()} me-1`}></span>
+                          <span className="fw-bold">{game.homeTeam}</span>
+                        </div>
+                        {game.gameStatus === 'FINISHED' ? (
+                          <Link
+                            to={`/results/${game.id}`}
+                            className="game-score text-primary text-decoration-none"
+                            style={{ fontSize: '1.1rem', margin: '4px 0', fontWeight: 'bold' }}
+                          >
+                            {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                          </Link>
+                        ) : (
+                          <strong className="game-score text-primary" style={{ fontSize: '1.1rem', margin: '4px 0' }}>
+                            {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                          </strong>
+                        )}
+                        <div className="away-team text-center">
+                          <span className="fw-bold">{game.awayTeam}</span>
+                          <span className={`fi fi-${game.awayCountryCode?.toLowerCase()} ms-1`}></span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Układ grid (1 linia) z dwukropkiem centralnym */
+                      <div
+                        className="d-grid d-md-none align-items-center"
+                        style={{
+                          gridTemplateColumns: '1fr auto 1fr',
+                          gap: '8px'
+                        }}
+                      >
+                        <span className="home-team text-end">
+                          <span className={`fi fi-${game.homeCountryCode?.toLowerCase()} me-1`}></span>
+                          <span className="fw-bold">{game.homeTeam}</span>
+                        </span>
+                        {game.gameStatus === 'FINISHED' ? (
+                          <Link
+                            to={`/results/${game.id}`}
+                            className="game-score text-primary text-center text-decoration-none"
+                            style={{ fontWeight: 'bold' }}
+                          >
+                            {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                          </Link>
+                        ) : (
+                          <strong className="game-score text-primary text-center">
+                            {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                          </strong>
+                        )}
+                        <span className="away-team text-start">
+                          <span className="fw-bold">{game.awayTeam}</span>
+                          <span className={`fi fi-${game.awayCountryCode?.toLowerCase()} ms-1`}></span>
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Desktop - zwykły flex */}
+                    <div className="d-none d-md-flex align-items-center justify-content-center" style={{ gap: '8px' }}>
                       <span className="home-team">
                         <span className={`fi fi-${game.homeCountryCode?.toLowerCase()} me-1`}></span>
                         <span className="fw-bold">{game.homeTeam}</span>
                       </span>
-                      <strong className="game-score text-primary mx-2">
-                        {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
-                      </strong>
+                      {game.gameStatus === 'FINISHED' ? (
+                        <Link
+                          to={`/results/${game.id}`}
+                          className="game-score text-primary text-decoration-none"
+                          style={{ fontWeight: 'bold' }}
+                        >
+                          {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                        </Link>
+                      ) : (
+                        <strong className="game-score text-primary">
+                          {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                        </strong>
+                      )}
                       <span className="away-team">
                         <span className="fw-bold">{game.awayTeam}</span>
                         <span className={`fi fi-${game.awayCountryCode?.toLowerCase()} ms-1`}></span>
@@ -132,71 +205,101 @@ function Games() {
                     </div>
                   </div>
 
-                  {/* Typ, punkty i przyciski */}
-                  <div className="game-actions d-flex align-items-center text-nowrap">
+                  {/* Typ i przyciski - nowy wiersz na mobile */}
+                  <div className="d-flex align-items-center justify-content-center flex-wrap" style={{ gap: '8px', position: 'relative' }}>
+                    {/* Środek - typ i punkty wyśrodkowane */}
                     {game.prediction && (
-                      <span
-                        className="me-2 btn btn-sm"
-                        style={{
-                          backgroundColor: '#fd7e14',
-                          color: 'white',
-                          border: 'none',
-                          pointerEvents: 'none',
-                          cursor: 'default',
-                          minWidth: '50px',
-                          padding: '4px 8px'
-                        }}
-                      >
-                        {game.prediction.predictedHomeScore}:{game.prediction.predictedAwayScore}
-                      </span>
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <span
+                          className="me-2 btn btn-sm prediction-hover"
+                          style={{
+                            backgroundColor: 'rgba(78, 115, 223, 0.15)',
+                            color: '#4e73df',
+                            border: '1px solid rgba(78, 115, 223, 0.3)',
+                            cursor: game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) ? 'pointer' : 'default',
+                            width: '60px',
+                            padding: '4px 8px',
+                            fontFamily: 'monospace',
+                            fontSize: '0.95rem',
+                            textAlign: 'center',
+                            position: 'relative',
+                            fontWeight: '600'
+                          }}
+                        >
+                          {game.prediction.predictedHomeScore}:{game.prediction.predictedAwayScore}
+
+                          {/* Popup z opcjami - pojawia się na hover */}
+                          {game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) && (
+                            <div
+                              className="prediction-actions-popup"
+                              style={{
+                                position: 'absolute',
+                                bottom: '100%',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                marginBottom: '8px',
+                                backgroundColor: 'white',
+                                border: '1px solid #ddd',
+                                borderRadius: '8px',
+                                padding: '8px',
+                                boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                                display: 'none',
+                                zIndex: 1000,
+                                whiteSpace: 'nowrap'
+                              }}
+                            >
+                              <Link
+                                to={`/predictions/edit/${game.prediction.id}`}
+                                className="btn btn-sm btn-outline-primary me-2"
+                                style={{ minWidth: '38px', padding: '4px 8px' }}
+                                title="Edytuj"
+                              >
+                                <i className="fas fa-edit"></i>
+                              </Link>
+                              <Button
+                                variant="outline-danger"
+                                size="sm"
+                                style={{ minWidth: '38px', padding: '4px 8px' }}
+                                onClick={() => handleDeletePrediction(game.prediction.id)}
+                                title="Usuń"
+                              >
+                                <i className="fas fa-trash"></i>
+                              </Button>
+                              {/* Strzałka */}
+                              <div style={{
+                                position: 'absolute',
+                                bottom: '-6px',
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                width: '0',
+                                height: '0',
+                                borderLeft: '6px solid transparent',
+                                borderRight: '6px solid transparent',
+                                borderTop: '6px solid white'
+                              }}></div>
+                            </div>
+                          )}
+                        </span>
+                      </div>
                     )}
 
                     {game.prediction?.points !== undefined && game.prediction?.points !== null && (
                       <Badge
                         bg={game.prediction.points === 3 ? 'success' : game.prediction.points === 1 ? 'warning' : 'secondary'}
-                        className="me-2"
                       >
                         {game.prediction.points} pkt
                       </Badge>
                     )}
 
+                    {/* Przycisk typuj dla nowych typów */}
                     {!game.prediction && game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) && (
                       <Link
                         to={`/predictions/new/${game.id}`}
-                        className="btn btn-sm btn-primary me-1"
+                        className="btn btn-sm btn-outline-primary"
                         style={{ minWidth: '38px', padding: '4px 8px' }}
                         title="Typuj"
                       >
                         <i className="fas fa-plus"></i>
-                      </Link>
-                    )}
-
-                    {game.prediction && game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) && (
-                      <>
-                        <Link
-                          to={`/predictions/edit/${game.prediction.id}`}
-                          className="btn btn-sm btn-outline-primary me-1"
-                          style={{ minWidth: '38px', padding: '4px 8px' }}
-                          title="Edytuj"
-                        >
-                          <i className="fas fa-edit"></i>
-                        </Link>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          className="me-1"
-                          style={{ minWidth: '38px', padding: '4px 8px' }}
-                          onClick={() => handleDeletePrediction(game.prediction.id)}
-                          title="Usuń"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </Button>
-                      </>
-                    )}
-
-                    {game.gameStatus === 'FINISHED' && (
-                      <Link to={`/results/${game.id}`} className="btn btn-sm btn-outline-info">
-                        <i className="fas fa-search"></i> Wyniki
                       </Link>
                     )}
                   </div>
