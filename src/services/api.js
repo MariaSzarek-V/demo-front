@@ -67,7 +67,9 @@ export const rankingApi = {
 // Comment endpoints
 export const commentApi = {
   getAllComments: () => api.get('/comments'),
-  createComment: (data) => api.post('/comments', data)
+  createComment: (data) => api.post('/comments', data),
+  addReaction: (commentId, emoji) => api.post(`/comments/${commentId}/reactions?emoji=${encodeURIComponent(emoji)}`),
+  removeReaction: (commentId, emoji) => api.delete(`/comments/${commentId}/reactions?emoji=${encodeURIComponent(emoji)}`)
 };
 
 // Results endpoints
