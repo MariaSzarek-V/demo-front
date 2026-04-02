@@ -10,18 +10,18 @@ const api = axios.create({
   }
 });
 
-// Response interceptor to map gameId -> id for compatibility
+// Response interceptor to map gameId -> id for compatibility (only for objects without existing id)
 api.interceptors.response.use(
   (response) => {
     if (response.data) {
-      // Map single object
-      if (response.data.gameId !== undefined) {
+      // Map single object - tylko jeśli nie ma już pola 'id'
+      if (response.data.gameId !== undefined && response.data.id === undefined) {
         response.data.id = response.data.gameId;
       }
-      // Map array of objects
+      // Map array of objects - tylko jeśli nie mają już pola 'id'
       if (Array.isArray(response.data)) {
         response.data = response.data.map(item => {
-          if (item.gameId !== undefined) {
+          if (item.gameId !== undefined && item.id === undefined) {
             return { ...item, id: item.gameId };
           }
           return item;

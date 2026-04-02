@@ -48,11 +48,11 @@ function Ranking() {
     );
   }
 
-  const getPositionColor = (index) => {
-    if (index === 0) return 'text-warning';
-    if (index === 1) return 'text-secondary';
-    if (index === 2) return 'text-info';
-    return 'text-dark';
+  const getPositionStyle = (index) => {
+    if (index === 0) return { color: '#FFD700', fontWeight: 'bold' }; // złoty
+    if (index === 1) return { color: '#C0C0C0', fontWeight: 'bold' }; // srebrny
+    if (index === 2) return { color: '#CD7F32', fontWeight: 'bold' }; // brązowy
+    return { color: '#000000', fontWeight: 'bold' }; // czarny
   };
 
   const getInitials = (username) => {
@@ -100,10 +100,13 @@ function Ranking() {
                 >
                   {/* Pozycja */}
                   <span
-                    className={`fw-bold ${getPositionColor(index)}`}
-                    style={{ minWidth: '35px', fontSize: '0.95rem' }}
+                    className="d-flex align-items-center"
+                    style={{ minWidth: '50px', fontSize: '0.95rem', ...getPositionStyle(index), gap: '4px' }}
                   >
-                    #{row.position}
+                    {row.position}.
+                    {index < 3 && (
+                      <i className="fas fa-trophy" style={{ fontSize: '1rem' }}></i>
+                    )}
                   </span>
 
                   {/* Avatar */}
@@ -138,11 +141,11 @@ function Ranking() {
 
                   {/* Username */}
                   <span
-                    className="text-dark"
                     style={{
                       fontSize: '0.9rem',
                       flex: 1,
-                      minWidth: 0
+                      minWidth: 0,
+                      color: '#000000'
                     }}
                   >
                     {row.username}
@@ -179,12 +182,12 @@ function Ranking() {
 
                   {/* Punkty */}
                   <span
-                    className="text-dark"
                     style={{
                       fontSize: '0.9rem',
                       width: '70px',
                       textAlign: 'right',
-                      flexShrink: 0
+                      flexShrink: 0,
+                      color: '#000000'
                     }}
                   >
                     {row.totalPoints} pkt
