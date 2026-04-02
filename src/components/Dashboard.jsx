@@ -194,7 +194,7 @@ function Dashboard() {
   if (!stats) return null;
 
   return (
-    <Container fluid className="px-2 px-md-4 px-lg-5">
+    <Container fluid className="px-2 px-md-4 px-lg-5" style={{ height: 'calc(100vh - 150px)', overflowY: 'auto', paddingBottom: '2rem' }}>
       {/* Content Row - Statystyki */}
       <Row className="mt-4">
         {/* Twoje wyniki */}

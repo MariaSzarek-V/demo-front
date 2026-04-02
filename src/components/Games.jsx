@@ -96,9 +96,9 @@ function Games() {
   }
 
   return (
-    <Container fluid className="px-2 px-md-4 px-lg-5">
-      <Card className="border-start border-primary border-4 shadow mb-4">
-        <Card.Body style={{ maxHeight: '500px', overflowY: 'auto' }}>
+    <Container fluid className="px-2 px-md-4 px-lg-5" style={{ height: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <Card className="border-start border-primary border-4 shadow" style={{ flex: '1', minHeight: 0, marginBottom: '0.5rem' }}>
+        <Card.Body style={{ maxHeight: '100%', overflowY: 'auto' }}>
           {games && games.length > 0 ? (
             <div className="games-list" style={{ fontSize: '0.9rem' }}>
               {games.map((game) => (

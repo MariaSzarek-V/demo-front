@@ -13,20 +13,46 @@ function Comments() {
   const [submitting, setSubmitting] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showCombinedPicker, setShowCombinedPicker] = useState(false);
+  const [pickerTab, setPickerTab] = useState('emoji'); // 'emoji' or 'gif'
+  const [showReactionsModal, setShowReactionsModal] = useState(null); // { commentId, emoji }
   const [showReactionPicker, setShowReactionPicker] = useState(null);
   const [showMoreReactionsPicker, setShowMoreReactionsPicker] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
+  const [expandedCommentId, setExpandedCommentId] = useState(null);
+  const [highlightedCommentId, setHighlightedCommentId] = useState(null);
   const [gifs, setGifs] = useState([]);
   const [gifSearchTerm, setGifSearchTerm] = useState('');
   const textareaRef = useRef(null);
   const emojiPickerRef = useRef(null);
   const gifPickerRef = useRef(null);
+  const combinedPickerRef = useRef(null);
   const reactionPickerRef = useRef(null);
   const moreReactionsPickerRef = useRef(null);
+  const reactionsModalRef = useRef(null);
   const messagesEndRef = useRef(null);
 
   const GIPHY_API_KEY = 'sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh'; // Public demo key
   const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢'];
+
+  // Generate consistent color for each user
+  const getUserColor = (username) => {
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+      hash = username.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const colors = [
+      '#0891b2', // cyan
+      '#8b5cf6', // purple
+      '#ec4899', // pink
+      '#f59e0b', // amber
+      '#10b981', // emerald
+      '#6366f1', // indigo
+      '#f97316', // orange
+      '#14b8a6', // teal
+    ];
+    return colors[Math.abs(hash) % colors.length];
+  };
 
   useEffect(() => {
     loadComments();
@@ -34,11 +60,8 @@ function Comments() {
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
-        setShowEmojiPicker(false);
-      }
-      if (gifPickerRef.current && !gifPickerRef.current.contains(event.target)) {
-        setShowGifPicker(false);
+      if (combinedPickerRef.current && !combinedPickerRef.current.contains(event.target)) {
+        setShowCombinedPicker(false);
       }
       if (reactionPickerRef.current && !reactionPickerRef.current.contains(event.target)) {
         setShowReactionPicker(null);
@@ -46,26 +69,38 @@ function Comments() {
       if (moreReactionsPickerRef.current && !moreReactionsPickerRef.current.contains(event.target)) {
         setShowMoreReactionsPicker(null);
       }
+      if (reactionsModalRef.current && !reactionsModalRef.current.contains(event.target)) {
+        setShowReactionsModal(null);
+      }
     };
 
-    if (showEmojiPicker || showGifPicker || showReactionPicker !== null || showMoreReactionsPicker !== null) {
+    if (showCombinedPicker || showReactionPicker !== null || showMoreReactionsPicker !== null || showReactionsModal !== null) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showEmojiPicker, showGifPicker, showReactionPicker, showMoreReactionsPicker]);
+  }, [showCombinedPicker, showReactionPicker, showMoreReactionsPicker, showReactionsModal]);
 
   useEffect(() => {
-    if (showGifPicker) {
+    if (showCombinedPicker && pickerTab === 'gif') {
       searchGifs('trending');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showGifPicker]);
+  }, [showCombinedPicker, pickerTab]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const scrollToComment = (commentId) => {
+    const element = document.getElementById(`comment-${commentId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      setHighlightedCommentId(commentId);
+      setTimeout(() => setHighlightedCommentId(null), 2000);
+    }
   };
 
   const loadComments = async () => {
@@ -107,7 +142,7 @@ function Comments() {
       const newText = textBeforeCursor + emojiObject.emoji + textAfterCursor;
 
       setNewCommentText(newText);
-      setShowEmojiPicker(false);
+      setShowCombinedPicker(false);
 
       setTimeout(() => {
         textarea.focus();
@@ -139,23 +174,26 @@ function Comments() {
     }
   };
 
-  const handleGifClick = (gifUrl) => {
+  const handleGifClick = async (gifUrl) => {
+    // Send GIF immediately as separate message
     const gifTag = `[GIF:${gifUrl}]`;
-    const textarea = textareaRef.current;
 
-    if (textarea) {
-      const cursorPosition = textarea.selectionStart;
-      const textBeforeCursor = newCommentText.substring(0, cursorPosition);
-      const textAfterCursor = newCommentText.substring(cursorPosition);
-      const newText = textBeforeCursor + gifTag + textAfterCursor;
-
-      setNewCommentText(newText);
-      setShowGifPicker(false);
-
-      setTimeout(() => {
-        textarea.focus();
-        autoResizeTextarea();
-      }, 0);
+    try {
+      setSubmitting(true);
+      const commentData = {
+        text: gifTag,
+        parentCommentId: replyingTo?.id || null
+      };
+      await commentApi.createComment(commentData);
+      setReplyingTo(null);
+      setShowCombinedPicker(false);
+      await loadComments();
+      setSubmitting(false);
+      setTimeout(scrollToBottom, 100);
+    } catch (err) {
+      console.error('Error sending GIF:', err);
+      alert('Nie udało się wysłać GIF-a');
+      setSubmitting(false);
     }
   };
 
@@ -233,6 +271,15 @@ function Comments() {
     }
   };
 
+  const handleKeyPress = (e) => {
+    // Enter without Shift = send message
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e);
+    }
+    // Shift+Enter = new line (default behavior)
+  };
+
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleString('pl-PL', {
@@ -259,7 +306,7 @@ function Comments() {
           key={match.index}
           src={match[1]}
           alt="GIF"
-          style={{ maxWidth: '300px', maxHeight: '300px', display: 'block', marginTop: '8px', marginBottom: '8px', borderRadius: '4px' }}
+          style={{ maxWidth: '100%', maxHeight: '200px', display: 'block', marginTop: '0', marginBottom: '0', borderRadius: '8px' }}
         />
       );
       lastIndex = match.index + match[0].length;
@@ -270,6 +317,10 @@ function Comments() {
     }
 
     return parts.length > 0 ? parts : text;
+  };
+
+  const isOnlyGif = (text) => {
+    return /^\[GIF:https?:\/\/[^\]]+\]$/.test(text.trim());
   };
 
   if (loading) {
@@ -295,114 +346,227 @@ function Comments() {
   }
 
   return (
-    <Container fluid className="px-2 px-md-4 px-lg-5" style={{ height: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <Container fluid className="px-1 px-md-2 px-lg-3" style={{ height: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Lista komentarzy z ograniczoną wysokością i scrollem - TYLKO TEN SCROLL */}
-      <Card className="shadow mb-3" style={{ flex: '1', minHeight: 0, backgroundColor: '#f8f9fc' }}>
-        <Card.Body style={{ maxHeight: '100%', overflowY: 'auto', padding: '1rem' }}>
+      <Card className="shadow mb-2" style={{ flex: '1', minHeight: 0, backgroundColor: '#f8f9fc' }}>
+        <Card.Body style={{ maxHeight: '100%', overflowY: 'auto', padding: '0.3rem' }}>
           {comments && comments.length > 0 ? (
             <div className="comments-list">
-              {comments.map((comment) => {
+              {comments.map((comment, index) => {
                 const isMyComment = comment.username === user?.username;
                 const groupedReactions = groupReactions(comment.reactions);
+
+                // Sprawdź czy poprzedni komentarz jest od innej osoby
+                const previousComment = index > 0 ? comments[index - 1] : null;
+                const isDifferentAuthor = previousComment && previousComment.username !== comment.username;
+                const marginBottom = isDifferentAuthor ? '12px' : '2px';
 
                 return (
                   <div
                     key={comment.id}
-                    className="mb-3"
+                    id={`comment-${comment.id}`}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      alignItems: isMyComment ? 'flex-end' : 'flex-start'
+                      alignItems: isMyComment ? 'flex-end' : 'flex-start',
+                      marginBottom: marginBottom,
+                      padding: '2px',
+                      borderRadius: '8px',
+                      backgroundColor: highlightedCommentId === comment.id ? '#e0f2f4' : 'transparent',
+                      transition: 'background-color 0.3s ease'
                     }}
                   >
                     {/* Username and date */}
-                    <div className="mb-1" style={{ fontSize: '0.75rem', color: '#858796', paddingLeft: '8px', paddingRight: '8px' }}>
-                      <strong>{comment.username}</strong>
-                      <span className="ms-2">{formatDate(comment.createdAt)}</span>
-                    </div>
+                    {(!isMyComment || expandedCommentId === comment.id) && (
+                      <div style={{
+                        fontSize: 'clamp(0.65rem, 1.5vw, 0.75rem)',
+                        color: '#858796',
+                        paddingLeft: isMyComment ? '0' : '40px',
+                        paddingRight: isMyComment ? '0' : '0',
+                        marginBottom: '2px'
+                      }}>
+                        {!isMyComment && <strong>{comment.username}</strong>}
+                        <span className={!isMyComment ? 'ms-2' : ''}>{formatDate(comment.createdAt)}</span>
+                      </div>
+                    )}
 
-                    {/* Message bubble */}
+                    {/* Message bubble z avatarem */}
                     <div
-                      style={{ position: 'relative', maxWidth: '70%' }}
-                      onMouseEnter={() => setShowReactionPicker(comment.id)}
-                      onMouseLeave={() => {
-                        if (showMoreReactionsPicker !== comment.id) {
-                          setShowReactionPicker(null);
-                        }
+                      style={{
+                        display: 'flex',
+                        flexDirection: isMyComment ? 'row' : 'row',
+                        alignItems: 'flex-end',
+                        gap: '8px',
+                        width: '100%'
                       }}
-                      onClick={() => setShowReactionPicker(comment.id)}
                     >
+                      {/* Avatar tylko dla wiadomości od innych - po lewej */}
+                      {!isMyComment && (
+                        <div
+                          style={{
+                            width: '32px',
+                            height: '32px',
+                            borderRadius: '50%',
+                            backgroundColor: getUserColor(comment.username),
+                            color: 'white',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '0.875rem',
+                            fontWeight: 'bold',
+                            flexShrink: 0,
+                            overflow: 'hidden'
+                          }}
+                        >
+                          {comment.avatarUrl ? (
+                            <img
+                              src={comment.avatarUrl}
+                              alt={comment.username}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
+                            />
+                          ) : (
+                            comment.username.charAt(0).toUpperCase()
+                          )}
+                        </div>
+                      )}
+
+                      {/* Message bubble wrapper with reactions */}
                       <div
                         style={{
-                          backgroundColor: isMyComment ? '#4e73df' : 'white',
-                          color: isMyComment ? 'white' : '#333',
-                          padding: '10px 14px',
-                          borderRadius: '18px',
-                          boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-                          wordWrap: 'break-word',
-                          position: 'relative'
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: isMyComment ? 'flex-end' : 'flex-start',
+                          flex: 1,
+                          minWidth: 0
                         }}
                       >
-                        {/* Quoted message */}
-                        {comment.parentCommentId && (
-                          <div
-                            style={{
-                              backgroundColor: isMyComment ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.05)',
-                              borderLeft: `3px solid ${isMyComment ? 'rgba(255,255,255,0.5)' : '#4e73df'}`,
-                              padding: '6px 10px',
-                              marginBottom: '8px',
-                              borderRadius: '6px',
-                              fontSize: '0.85rem',
-                              opacity: 0.9
-                            }}
-                          >
-                            <div style={{ fontWeight: 'bold', marginBottom: '2px', fontSize: '0.75rem' }}>
-                              {comment.parentCommentUsername}
+                        {/* Message bubble container */}
+                        <div style={{ position: 'relative', maxWidth: '92%', display: 'flex', flexDirection: 'column', alignItems: isMyComment ? 'flex-end' : 'flex-start' }}>
+                          {/* Quoted message bubble - ABOVE (Messenger style) */}
+                          {comment.parentCommentId && (
+                            <div
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                scrollToComment(comment.parentCommentId);
+                              }}
+                              style={{
+                                backgroundColor: isMyComment ? '#d4e9ea' : '#f5f5f5',
+                                color: isMyComment ? '#1d3557' : '#5a5c69',
+                                padding: '6px 12px',
+                                borderRadius: '12px',
+                                fontSize: 'clamp(0.7rem, 1.6vw, 0.8rem)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s',
+                                marginBottom: '-8px',
+                                maxWidth: '90%',
+                                boxShadow: '0 1px 2px rgba(0,0,0,0.06)',
+                                zIndex: 0,
+                                position: 'relative'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.currentTarget.style.backgroundColor = isMyComment ? '#c0dee0' : '#e8e8e8';
+                                e.currentTarget.style.transform = 'translateY(-2px)';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.style.backgroundColor = isMyComment ? '#d4e9ea' : '#f5f5f5';
+                                e.currentTarget.style.transform = 'translateY(0)';
+                              }}
+                            >
+                              <div style={{ fontWeight: 'bold', marginBottom: '2px', fontSize: 'clamp(0.65rem, 1.5vw, 0.72rem)' }}>
+                                {comment.parentCommentUsername}
+                              </div>
+                              <div style={{
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis',
+                                display: '-webkit-box',
+                                WebkitLineClamp: 3,
+                                WebkitBoxOrient: 'vertical',
+                                wordBreak: 'break-word'
+                              }}>
+                                {comment.parentCommentText}
+                              </div>
                             </div>
-                            <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {comment.parentCommentText && comment.parentCommentText.length > 60
-                                ? comment.parentCommentText.substring(0, 60) + '...'
-                                : comment.parentCommentText}
-                            </div>
-                          </div>
-                        )}
-                        {renderCommentText(comment.text)}
-                      </div>
+                          )}
 
-                      {/* Reactions display */}
+                          {/* Main message bubble */}
+                        <div
+                          style={{ position: 'relative', width: '100%', zIndex: 1 }}
+                          onMouseEnter={() => setShowReactionPicker(comment.id)}
+                          onMouseLeave={() => {
+                            if (showMoreReactionsPicker !== comment.id) {
+                              setShowReactionPicker(null);
+                            }
+                          }}
+                          onClick={() => {
+                            if (isMyComment) {
+                              setExpandedCommentId(expandedCommentId === comment.id ? null : comment.id);
+                            } else {
+                              setShowReactionPicker(comment.id);
+                            }
+                          }}
+                        >
+                      {isOnlyGif(comment.text) ? (
+                        // Just render the GIF
+                        <>
+                          {renderCommentText(comment.text)}
+                        </>
+                      ) : (
+                        // Render with bubble for text
+                        <div
+                          style={{
+                            backgroundColor: isMyComment ? '#0891b2' : 'white',
+                            color: isMyComment ? 'white' : '#333',
+                            padding: '10px 14px',
+                            borderRadius: '18px',
+                            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
+                            wordWrap: 'break-word',
+                            position: 'relative',
+                            fontSize: 'clamp(0.85rem, 2vw, 0.95rem)'
+                          }}
+                        >
+                          {renderCommentText(comment.text)}
+                        </div>
+                      )}
+                        </div>
+
+                      {/* Reactions display - wszystkie w jednej chmurce */}
                       {groupedReactions.length > 0 && (
                         <div
                           style={{
-                            display: 'flex',
-                            gap: '4px',
-                            marginTop: '4px',
-                            flexWrap: 'wrap'
+                            marginTop: '-8px',
+                            marginLeft: '8px',
+                            position: 'relative',
+                            zIndex: 1
                           }}
                         >
-                          {groupedReactions.map((reaction) => {
-                            const userReacted = reaction.usernames.includes(user?.username);
-                            return (
-                              <button
-                                key={reaction.emoji}
-                                onClick={() => handleReactionClick(comment.id, reaction.emoji)}
-                                style={{
-                                  backgroundColor: userReacted ? '#e3f2fd' : 'white',
-                                  border: userReacted ? '2px solid #4e73df' : '1px solid #ddd',
-                                  borderRadius: '12px',
-                                  padding: '2px 8px',
-                                  fontSize: '0.85rem',
-                                  cursor: 'pointer',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '4px'
-                                }}
-                                title={reaction.usernames.join(', ')}
-                              >
-                                <span>{reaction.emoji}</span>
-                                <span style={{ fontSize: '0.75rem', color: '#666' }}>{reaction.count}</span>
-                              </button>
-                            );
-                          })}
+                          <button
+                            onClick={() => setShowReactionsModal({ commentId: comment.id })}
+                            style={{
+                              backgroundColor: comment.reactions.some(r => r.username === user?.username) ? '#e0f2f1' : 'white',
+                              border: 'none',
+                              borderRadius: '10px',
+                              padding: '2px 6px',
+                              fontSize: 'clamp(0.75rem, 1.8vw, 0.85rem)',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '3px'
+                            }}
+                            title="Zobacz reakcje"
+                          >
+                            {/* All emoji together */}
+                            {groupedReactions.map(r => (
+                              <span key={r.emoji} style={{ fontSize: '1rem' }}>{r.emoji}</span>
+                            ))}
+                            {/* Total count */}
+                            <span style={{ fontSize: 'clamp(0.7rem, 1.6vw, 0.8rem)', color: '#666', marginLeft: '2px', fontWeight: '600' }}>
+                              {comment.reactions.length}
+                            </span>
+                          </button>
                         </div>
                       )}
 
@@ -517,6 +681,8 @@ function Comments() {
                       )}
                     </div>
                   </div>
+                </div>
+              </div>
                 );
               })}
               {/* Invisible element to scroll to */}
@@ -531,14 +697,15 @@ function Comments() {
       </Card>
 
       {/* Formularz dodawania komentarza - bez scrolla */}
-      <Card className="shadow" style={{ flexShrink: 0 }}>
-        <Card.Body style={{ position: 'relative' }}>
+      <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
+        <Card className="shadow" style={{ flexShrink: 0, backgroundColor: '#f8f9fc' }}>
+        <Card.Body style={{ position: 'relative', padding: '0.5rem' }}>
           {/* Reply preview */}
           {replyingTo && (
             <div
               style={{
                 backgroundColor: '#f0f0f0',
-                borderLeft: '3px solid #4e73df',
+                borderLeft: '3px solid rgba(8, 145, 178, 0.85)',
                 padding: '8px 12px',
                 marginBottom: '10px',
                 borderRadius: '4px',
@@ -547,11 +714,11 @@ function Comments() {
                 alignItems: 'center'
               }}
             >
-              <div>
-                <div style={{ fontSize: '0.75rem', color: '#666', marginBottom: '2px' }}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 'clamp(0.65rem, 1.5vw, 0.75rem)', color: '#666', marginBottom: '2px' }}>
                   Odpowiadasz na <strong>{replyingTo.username}</strong>
                 </div>
-                <div style={{ fontSize: '0.85rem', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '400px' }}>
+                <div style={{ fontSize: 'clamp(0.75rem, 1.8vw, 0.85rem)', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                   {replyingTo.text.length > 50 ? replyingTo.text.substring(0, 50) + '...' : replyingTo.text}
                 </div>
               </div>
@@ -571,112 +738,346 @@ function Comments() {
             </div>
           )}
           <Form onSubmit={handleSubmit}>
-            <div className="d-flex align-items-start gap-2">
-              <Form.Control
-                as="textarea"
-                id="text"
-                ref={textareaRef}
-                required
-                placeholder="Dodaj komentarz..."
-                value={newCommentText}
-                onChange={handleTextChange}
+            {/* Input row - like Messenger */}
+            <div className="d-flex align-items-center gap-2">
+              {/* Textarea container with emoji button inside */}
+              <div style={{ position: 'relative', flex: 1 }}>
+                <Form.Control
+                  as="textarea"
+                  id="text"
+                  ref={textareaRef}
+                  required
+                  placeholder="Wiadomość"
+                  value={newCommentText}
+                  onChange={handleTextChange}
+                  onKeyPress={handleKeyPress}
+                  disabled={submitting}
+                  rows={1}
+                  style={{
+                    width: '100%',
+                    minHeight: '36px',
+                    maxHeight: '120px',
+                    resize: 'none',
+                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+                    padding: '0.45rem 3rem 0.45rem 0.75rem',
+                    borderRadius: '18px'
+                  }}
+                />
+
+                {/* Emoji/GIF button inside textarea - centered vertically */}
+                <Button
+                  type="button"
+                  variant="link"
+                  onClick={() => {
+                    setShowCombinedPicker(!showCombinedPicker);
+                    setPickerTab('emoji');
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '4px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    padding: '4px',
+                    fontSize: '1.3rem',
+                    textDecoration: 'none',
+                    color: showCombinedPicker ? '#0891b2' : '#858796',
+                    lineHeight: 1
+                  }}
+                  title="Emoji i GIF"
+                >
+                  <i className="far fa-smile"></i>
+                </Button>
+              </div>
+
+              {/* Send button on right */}
+              <Button
+                type="submit"
+                variant="primary"
                 disabled={submitting}
-                style={{ flex: 1, minHeight: '38px', resize: 'none', overflow: 'hidden' }}
-              />
-              <Button
-                type="button"
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowEmojiPicker(!showEmojiPicker);
-                  setShowGifPicker(false);
+                style={{
+                  flexShrink: 0,
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '50%',
+                  padding: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}
-                style={{ height: '38px', flexShrink: 0 }}
               >
-                <i className="far fa-smile"></i>
-              </Button>
-              <Button
-                type="button"
-                variant="outline-secondary"
-                onClick={() => {
-                  setShowGifPicker(!showGifPicker);
-                  setShowEmojiPicker(false);
-                }}
-                style={{ height: '38px', flexShrink: 0 }}
-              >
-                GIF
-              </Button>
-              <Button type="submit" variant="primary" disabled={submitting} style={{ height: '38px', flexShrink: 0 }}>
                 <i className={submitting ? 'fas fa-spinner fa-spin' : 'fas fa-paper-plane'}></i>
               </Button>
             </div>
           </Form>
-
-          {/* Emoji Picker Popup */}
-          {showEmojiPicker && (
-            <div ref={emojiPickerRef} style={{ position: 'absolute', bottom: '60px', right: '10px', zIndex: 1000 }}>
-              <EmojiPicker onEmojiClick={handleEmojiClick} width={300} height={400} />
-            </div>
-          )}
-
-          {/* GIF Picker Popup */}
-          {showGifPicker && (
-            <div
-              ref={gifPickerRef}
-              style={{
-                position: 'absolute',
-                bottom: '60px',
-                right: '10px',
-                zIndex: 1000,
-                backgroundColor: 'white',
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                width: '350px',
-                maxHeight: '450px',
-                display: 'flex',
-                flexDirection: 'column'
-              }}
-            >
-              <div style={{ padding: '12px', borderBottom: '1px solid #eee' }}>
-                <Form onSubmit={handleGifSearch}>
-                  <div className="d-flex gap-2">
-                    <Form.Control
-                      type="text"
-                      placeholder="Szukaj GIF..."
-                      value={gifSearchTerm}
-                      onChange={(e) => setGifSearchTerm(e.target.value)}
-                      size="sm"
-                    />
-                    <Button type="submit" variant="primary" size="sm">
-                      <i className="fas fa-search"></i>
-                    </Button>
-                  </div>
-                </Form>
-              </div>
-              <div style={{ overflowY: 'auto', padding: '8px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
-                {gifs.map((gif) => (
-                  <img
-                    key={gif.id}
-                    src={gif.images.fixed_height_small.url}
-                    alt={gif.title}
-                    onClick={() => handleGifClick(gif.images.fixed_height.url)}
-                    style={{
-                      width: '100%',
-                      height: 'auto',
-                      cursor: 'pointer',
-                      borderRadius: '4px',
-                      border: '2px solid transparent',
-                      transition: 'border-color 0.2s'
-                    }}
-                    onMouseEnter={(e) => e.target.style.borderColor = '#4e73df'}
-                    onMouseLeave={(e) => e.target.style.borderColor = 'transparent'}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
         </Card.Body>
       </Card>
+
+        {/* Combined Emoji & GIF Picker - NA SAMYM DOLE */}
+        {showCombinedPicker && (
+          <div
+            ref={combinedPickerRef}
+            style={{
+              backgroundColor: 'white',
+              border: '1px solid #ddd',
+              borderTop: '2px solid #e3e6f0',
+              boxShadow: '0 -4px 12px rgba(0,0,0,0.1)',
+              width: '100%',
+              height: '400px',
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 999
+            }}
+          >
+            {/* Tabs na górze */}
+            <div style={{ display: 'flex', borderBottom: '1px solid #e3e6f0' }}>
+              <button
+                type="button"
+                onClick={() => setPickerTab('emoji')}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: pickerTab === 'emoji' ? '#f8f9fc' : 'transparent',
+                  border: 'none',
+                  borderBottom: pickerTab === 'emoji' ? '2px solid #0891b2' : 'none',
+                  cursor: 'pointer',
+                  fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
+                  fontWeight: pickerTab === 'emoji' ? 'bold' : 'normal',
+                  color: pickerTab === 'emoji' ? '#0891b2' : '#858796'
+                }}
+              >
+                <i className="far fa-smile me-2"></i>Emoji
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setPickerTab('gif');
+                  if (gifs.length === 0) {
+                    searchGifs('trending');
+                  }
+                }}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  backgroundColor: pickerTab === 'gif' ? '#f8f9fc' : 'transparent',
+                  border: 'none',
+                  borderBottom: pickerTab === 'gif' ? '2px solid #0891b2' : 'none',
+                  cursor: 'pointer',
+                  fontSize: 'clamp(0.85rem, 2vw, 0.95rem)',
+                  fontWeight: pickerTab === 'gif' ? 'bold' : 'normal',
+                  color: pickerTab === 'gif' ? '#0891b2' : '#858796'
+                }}
+              >
+                <i className="fas fa-images me-2"></i>GIF
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ flex: 1, overflow: 'hidden' }}>
+              {pickerTab === 'emoji' ? (
+                <div style={{ height: '100%', display: 'flex', justifyContent: 'center', padding: '8px' }}>
+                  <EmojiPicker
+                    onEmojiClick={handleEmojiClick}
+                    width="100%"
+                    height={340}
+                    searchDisabled={false}
+                    skinTonesDisabled={false}
+                    previewConfig={{ showPreview: false }}
+                    categories={[
+                      { category: 'suggested', name: 'Ostatnio używane' },
+                      { category: 'smileys_people', name: 'Buźki i ludzie' },
+                      { category: 'animals_nature', name: 'Zwierzęta i natura' },
+                      { category: 'food_drink', name: 'Jedzenie i picie' },
+                      { category: 'travel_places', name: 'Podróże i miejsca' },
+                      { category: 'activities', name: 'Aktywności' },
+                      { category: 'objects', name: 'Obiekty' },
+                      { category: 'symbols', name: 'Symbole' },
+                      { category: 'flags', name: 'Flagi' }
+                    ]}
+                  />
+                </div>
+              ) : (
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+                  <div style={{ padding: '8px', borderBottom: '1px solid #e3e6f0' }}>
+                    <Form onSubmit={handleGifSearch}>
+                      <div className="d-flex gap-2">
+                        <Form.Control
+                          type="text"
+                          placeholder="Szukaj GIF..."
+                          value={gifSearchTerm}
+                          onChange={(e) => setGifSearchTerm(e.target.value)}
+                          size="sm"
+                          style={{ fontSize: 'clamp(0.8rem, 1.8vw, 0.9rem)' }}
+                        />
+                        <Button type="submit" variant="primary" size="sm">
+                          <i className="fas fa-search"></i>
+                        </Button>
+                      </div>
+                    </Form>
+                  </div>
+                  <div style={{ flex: 1, overflowY: 'auto', padding: '8px', display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                    {gifs.map((gif) => (
+                      <img
+                        key={gif.id}
+                        src={gif.images.fixed_height_small.url}
+                        alt={gif.title}
+                        onClick={() => handleGifClick(gif.images.fixed_height.url)}
+                        style={{
+                          width: '100%',
+                          height: 'auto',
+                          cursor: 'pointer',
+                          borderRadius: '4px',
+                          border: '2px solid transparent',
+                          transition: 'border-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.borderColor = '#22d3ee'}
+                        onMouseLeave={(e) => e.target.style.borderColor = 'transparent'}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Backdrop overlay - przyszarzenie tła */}
+      {showReactionsModal && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 1040,
+            backdropFilter: 'blur(2px)'
+          }}
+          onClick={() => setShowReactionsModal(null)}
+        />
+      )}
+
+      {/* Reactions Modal - dymek na dole */}
+      {showReactionsModal && (
+        <div
+          ref={reactionsModalRef}
+          style={{
+            position: 'fixed',
+            bottom: 0,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            width: '90%',
+            maxWidth: '500px',
+            backgroundColor: 'white',
+            borderRadius: '16px 16px 0 0',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.2)',
+            zIndex: 1050,
+            maxHeight: '60vh',
+            display: 'flex',
+            flexDirection: 'column',
+            animation: 'slideUp 0.3s ease-out'
+          }}
+        >
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '16px 20px',
+              borderBottom: '1px solid #e3e6f0'
+            }}
+          >
+            <h6 style={{ margin: 0, fontSize: 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
+              Reakcje {(() => {
+                const comment = comments.find(c => c.id === showReactionsModal.commentId);
+                return comment?.reactions?.length ? `(${comment.reactions.length})` : '';
+              })()}
+            </h6>
+            <button
+              onClick={() => setShowReactionsModal(null)}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                color: '#858796',
+                padding: '0',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Users list */}
+          <div style={{ overflowY: 'auto', padding: '12px 20px' }}>
+            {(() => {
+              const comment = comments.find(c => c.id === showReactionsModal.commentId);
+              if (!comment || !comment.reactions) return null;
+
+              // Group reactions by username
+              const userReactions = {};
+              comment.reactions.forEach(reaction => {
+                if (!userReactions[reaction.username]) {
+                  userReactions[reaction.username] = [];
+                }
+                userReactions[reaction.username].push(reaction.emoji);
+              });
+
+              // Show users with all their emojis
+              return Object.entries(userReactions).map(([username, emojis], index) => (
+                <div
+                  key={username}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 0',
+                    borderBottom: index < Object.keys(userReactions).length - 1 ? '1px solid #f0f0f0' : 'none'
+                  }}
+                >
+                  {/* Avatar placeholder */}
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      backgroundColor: '#0891b2',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      marginRight: '12px',
+                      flexShrink: 0
+                    }}
+                  >
+                    {username.charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Username */}
+                  <div style={{ flex: 1, fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
+                    {username}
+                  </div>
+
+                  {/* All emojis for this user */}
+                  <div style={{ display: 'flex', gap: '6px', fontSize: '1.5rem', marginLeft: '8px' }}>
+                    {emojis.map((emoji, emojiIndex) => (
+                      <span key={emojiIndex}>{emoji}</span>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
+          </div>
+        </div>
+      )}
     </Container>
   );
 }

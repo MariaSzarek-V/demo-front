@@ -1,7 +1,15 @@
 /* SB Admin 2 inspired styles */
+/* Override Bootstrap primary colors with deep cyan/ocean palette */
+:root {
+  --bs-primary: #0891b2;
+  --bs-primary-rgb: 8, 145, 178;
+  --bs-primary-dark: #0e7490;
+  --bs-primary-light: #06b6d4;
+}
+
 body {
   font-family: 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  font-size: 1rem;
+  font-size: clamp(0.875rem, 1.5vw, 1rem);
   font-weight: 400;
   line-height: 1.5;
   color: #858796;
@@ -26,15 +34,15 @@ body {
 
 /* Bootstrap customization for SB Admin 2 style */
 .bg-gradient-primary {
-  background-color: #4e73df;
-  background-image: linear-gradient(180deg, #4e73df 10%, #224abe 100%);
+  background-color: #0891b2;
+  background-image: linear-gradient(180deg, #0891b2 10%, #0e7490 100%);
   background-size: cover;
 }
 
 .navbar.bg-primary,
 .navbar.navbar-primary {
-  background-color: #4e73df !important;
-  background-image: linear-gradient(180deg, #4e73df 10%, #224abe 100%) !important;
+  background-color: #0891b2 !important;
+  background-image: linear-gradient(180deg, #0891b2 10%, #0e7490 100%) !important;
 }
 
 .topbar {
@@ -44,7 +52,7 @@ body {
 }
 
 .navbar-brand {
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 2.5vw, 1.25rem);
 }
 
 /* Navbar dropdown styling */
@@ -59,12 +67,14 @@ body {
 .navbar .nav-link {
   color: rgba(255, 255, 255, 0.9) !important;
   padding: 0.5rem 1rem;
+  text-decoration: none !important;
 }
 
 .navbar .nav-link:hover {
   color: white !important;
   background-color: rgba(255, 255, 255, 0.1);
   border-radius: 0.25rem;
+  text-decoration: none !important;
 }
 
 .navbar .nav-link.active {
@@ -72,6 +82,26 @@ body {
   background-color: rgba(255, 255, 255, 0.2);
   border-radius: 0.25rem;
   font-weight: 600;
+  text-decoration: none !important;
+}
+
+.navbar a {
+  text-decoration: none !important;
+}
+
+/* Logo/Brand always white regardless of state */
+.navbar .navbar-brand,
+.navbar .navbar-brand:hover,
+.navbar .navbar-brand:visited,
+.navbar .navbar-brand:active,
+.navbar .navbar-brand:focus {
+  color: white !important;
+  text-decoration: none !important;
+}
+
+.navbar .navbar-brand i,
+.navbar .navbar-brand span {
+  color: white !important;
 }
 
 .shadow {
@@ -81,7 +111,7 @@ body {
 /* Card borders - support both border-left and border-start */
 .border-left-primary,
 .border-start-primary {
-  border-left: 0.25rem solid #4e73df !important;
+  border-left: 0.25rem solid #0891b2 !important;
 }
 
 .border-left-success,
@@ -91,7 +121,7 @@ body {
 
 .border-left-info,
 .border-start-info {
-  border-left: 0.25rem solid #36b9cc !important;
+  border-left: 0.25rem solid #06b6d4 !important;
 }
 
 .border-left-warning,
@@ -145,7 +175,7 @@ body {
 
 /* Text colors */
 .text-primary {
-  color: #4e73df !important;
+  color: #0891b2 !important;
 }
 
 .text-success {
@@ -153,7 +183,7 @@ body {
 }
 
 .text-info {
-  color: #36b9cc !important;
+  color: #06b6d4 !important;
 }
 
 .text-warning {
@@ -173,11 +203,11 @@ body {
 }
 
 .text-xs {
-  font-size: 0.7rem;
+  font-size: clamp(0.75rem, 1.8vw, 0.85rem);
 }
 
 .text-md {
-  font-size: 0.9rem;
+  font-size: clamp(0.875rem, 2vw, 1rem);
 }
 
 /* Chart area */
@@ -226,7 +256,7 @@ body {
 
 .sticky-footer .copyright {
   line-height: 1;
-  font-size: 0.8rem;
+  font-size: clamp(0.75rem, 1.8vw, 0.85rem);
 }
 
 /* Custom card adjustments */
@@ -245,7 +275,7 @@ body {
 
 /* Bootstrap dropdown styling for navbar */
 .navbar .dropdown-menu {
-  font-size: 0.85rem;
+  font-size: clamp(0.875rem, 2vw, 1rem);
 }
 
 .navbar .dropdown-item {
@@ -259,7 +289,7 @@ body {
 
 /* Games list styling */
 .games-list a:hover {
-  color: #4e73df !important;
+  color: #0891b2 !important;
   transition: color 0.2s;
 }
 
@@ -277,17 +307,17 @@ body {
   background: url('assets/hero.png');
   background-position: center;
   background-size: cover;
-  background-color: #4e73df;
+  background-color: #0891b2;
 }
 
 .form-control-user {
-  font-size: 0.8rem;
+  font-size: clamp(0.875rem, 2vw, 1rem);
   border-radius: 10rem;
   padding: 1.5rem 1rem;
 }
 
 .btn-user {
-  font-size: 0.8rem;
+  font-size: clamp(0.875rem, 2vw, 1rem);
   border-radius: 10rem;
   padding: 0.75rem 1rem;
 }
@@ -316,10 +346,21 @@ body {
   }
 }
 
+@keyframes slideUp {
+  from {
+    transform: translateX(-50%) translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+  }
+}
+
 /* Clickable game score for finished games */
 .game-score.text-decoration-none:hover {
   text-decoration: underline !important;
-  color: #224abe !important;
+  color: #0e7490 !important;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -333,14 +374,14 @@ body {
 .game-item-finished:hover {
   transform: scale(1.02) !important;
   background-color: #f8f9fc !important;
-  box-shadow: 0 2px 8px rgba(78, 115, 223, 0.15) !important;
+  box-shadow: 0 2px 8px rgba(8, 145, 178, 0.15) !important;
 }
 
 /* Target the score link/element */
 .game-item-finished:hover .game-score,
 .game-item-finished:hover a.game-score {
   transform: scale(1.1) !important;
-  color: #224abe !important;
+  color: #0e7490 !important;
   text-decoration: underline !important;
 }
 
@@ -349,7 +390,7 @@ body {
 .game-item-finished:hover .away-team,
 .game-item-finished:hover .home-team *,
 .game-item-finished:hover .away-team * {
-  color: #224abe !important;
+  color: #0e7490 !important;
 }
 
 .game-item-finished .game-score,
@@ -357,4 +398,113 @@ body {
 .game-item-finished .home-team,
 .game-item-finished .away-team {
   transition: all 0.3s ease !important;
+}
+
+/* Responsive font sizes for lists and content */
+.games-list, .ranking-list {
+  font-size: clamp(0.875rem, 2vw, 1rem) !important;
+}
+
+/* Global Bootstrap color overrides - deep cyan/ocean palette */
+.btn-primary {
+  background-color: #0891b2 !important;
+  border-color: #0891b2 !important;
+  color: white !important;
+}
+
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background-color: #0e7490 !important;
+  border-color: #0e7490 !important;
+  color: white !important;
+}
+
+.btn-info {
+  background-color: #06b6d4 !important;
+  border-color: #06b6d4 !important;
+  color: white !important;
+}
+
+.btn-info:hover, .btn-info:focus, .btn-info:active {
+  background-color: #0891b2 !important;
+  border-color: #0891b2 !important;
+  color: white !important;
+}
+
+.bg-info {
+  background-color: #06b6d4 !important;
+}
+
+.badge-primary {
+  background-color: #0891b2 !important;
+  color: white !important;
+}
+
+.badge-info {
+  background-color: #06b6d4 !important;
+  color: white !important;
+}
+
+.alert-primary {
+  background-color: #cffafe !important;
+  border-color: #06b6d4 !important;
+  color: #0e7490 !important;
+}
+
+.alert-info {
+  background-color: #e0f2fe !important;
+  border-color: #0891b2 !important;
+  color: #0e7490 !important;
+}
+
+/* Links */
+a {
+  color: #0891b2 !important;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #0e7490 !important;
+  text-decoration: underline;
+}
+
+/* Emoji picker - move categories to bottom */
+.EmojiPickerReact,
+aside.EmojiPickerReact {
+  display: flex !important;
+  flex-direction: column-reverse !important;
+}
+
+/* Ensure search bar stays at top if present */
+.EmojiPickerReact .epr-search-container {
+  order: -2 !important;
+}
+
+/* Category navigation at bottom */
+.EmojiPickerReact .epr-category-nav {
+  order: 1 !important;
+  border-top: 1px solid #e3e6f0 !important;
+  border-bottom: none !important;
+}
+
+.game-date, .text-muted.small {
+  font-size: clamp(0.75rem, 1.8vw, 0.85rem) !important;
+}
+
+.game-score {
+  font-size: clamp(1rem, 2.5vw, 1.2rem) !important;
+}
+
+/* Card body text responsive */
+.card-body p, .card-body div {
+  font-size: clamp(0.875rem, 1.8vw, 1rem);
+}
+
+/* Badge responsive sizing */
+.badge {
+  font-size: clamp(0.75rem, 1.5vw, 0.875rem) !important;
+}
+
+/* Button text responsive */
+.btn-sm {
+  font-size: clamp(0.8rem, 1.8vw, 0.875rem) !important;
 }
