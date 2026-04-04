@@ -291,46 +291,28 @@ function Games() {
 
                     {/* Sprawdź czy nazwy są za długie - jeśli tak, użyj układu pionowego */}
                     {((game.homeTeam?.length || 0) + (game.awayTeam?.length || 0)) > 24 ? (
-                      /* Układ pionowy (3 linie) dla długich nazw - też jak tabela */
-                      <div className="d-flex d-md-none flex-column align-items-center" style={{ lineHeight: '1.4', width: '100%' }}>
-                        <div
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: '1fr auto',
-                            gap: '6px',
-                            alignItems: 'center',
-                            width: '100%',
-                            justifyItems: 'center'
-                          }}
-                        >
-                          <span className="fw-bold text-end">{game.homeTeam}</span>
+                      /* Układ pionowy (3 linie) dla długich nazw - MOBILE */
+                      <div className="d-block d-md-none" style={{ textAlign: 'center', width: '100%', padding: '0 10px' }}>
+                        <div style={{ marginBottom: '4px', maxWidth: '250px', margin: '0 auto 4px auto', wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.5' }}>
+                          <span className="fw-bold">{game.homeTeam} </span>
                           <span className={`fi fi-${game.homeCountryCode?.toLowerCase()}`}></span>
                         </div>
                         {game.gameStatus === 'FINISHED' ? (
                           <Link
                             to={`/results/${game.id}`}
-                            className="game-score text-primary text-decoration-none"
+                            className="game-score text-primary text-decoration-none d-block"
                             style={{ fontSize: '1.1rem', margin: '4px 0', fontWeight: 'bold' }}
                           >
                             {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
                           </Link>
                         ) : (
-                          <strong className="game-score text-primary" style={{ fontSize: '1.1rem', margin: '4px 0' }}>
+                          <strong className="game-score text-primary d-block" style={{ fontSize: '1.1rem', margin: '4px 0' }}>
                             {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
                           </strong>
                         )}
-                        <div
-                          style={{
-                            display: 'grid',
-                            gridTemplateColumns: 'auto 1fr',
-                            gap: '6px',
-                            alignItems: 'center',
-                            width: '100%',
-                            justifyItems: 'center'
-                          }}
-                        >
+                        <div style={{ marginTop: '4px', maxWidth: '250px', margin: '4px auto 0 auto', wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.5' }}>
                           <span className={`fi fi-${game.awayCountryCode?.toLowerCase()}`}></span>
-                          <span className="fw-bold text-start">{game.awayTeam}</span>
+                          <span className="fw-bold"> {game.awayTeam}</span>
                         </div>
                       </div>
                     ) : (
@@ -362,32 +344,60 @@ function Games() {
                       </div>
                     )}
 
-                    {/* Desktop - grid 5 kolumn */}
-                    <div
-                      className="d-none d-md-grid align-items-center"
-                      style={{
-                        gridTemplateColumns: '1fr auto auto auto 1fr',
-                        gap: '8px'
-                      }}
-                    >
-                      <span className="fw-bold text-end">{game.homeTeam}</span>
-                      <span className={`fi fi-${game.homeCountryCode?.toLowerCase()}`}></span>
-                      {game.gameStatus === 'FINISHED' ? (
-                        <Link
-                          to={`/results/${game.id}`}
-                          className="game-score text-primary text-center text-decoration-none"
-                          style={{ fontWeight: 'bold' }}
-                        >
-                          {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
-                        </Link>
-                      ) : (
-                        <strong className="game-score text-primary text-center">
-                          {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
-                        </strong>
-                      )}
-                      <span className={`fi fi-${game.awayCountryCode?.toLowerCase()}`}></span>
-                      <span className="fw-bold text-start">{game.awayTeam}</span>
-                    </div>
+                    {/* Desktop - sprawdź długość nazw */}
+                    {((game.homeTeam?.length || 0) + (game.awayTeam?.length || 0)) > 24 ? (
+                      /* Układ pionowy (3 linie) dla długich nazw - DESKTOP */
+                      <div className="d-none d-md-block" style={{ textAlign: 'center', width: '100%', padding: '0 10px' }}>
+                        <div style={{ marginBottom: '4px', maxWidth: '250px', margin: '0 auto 4px auto', wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.5' }}>
+                          <span className="fw-bold">{game.homeTeam} </span>
+                          <span className={`fi fi-${game.homeCountryCode?.toLowerCase()}`}></span>
+                        </div>
+                        {game.gameStatus === 'FINISHED' ? (
+                          <Link
+                            to={`/results/${game.id}`}
+                            className="game-score text-primary text-decoration-none d-block"
+                            style={{ fontSize: '1.1rem', margin: '4px 0', fontWeight: 'bold' }}
+                          >
+                            {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                          </Link>
+                        ) : (
+                          <strong className="game-score text-primary d-block" style={{ fontSize: '1.1rem', margin: '4px 0' }}>
+                            {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                          </strong>
+                        )}
+                        <div style={{ marginTop: '4px', maxWidth: '250px', margin: '4px auto 0 auto', wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.5' }}>
+                          <span className={`fi fi-${game.awayCountryCode?.toLowerCase()}`}></span>
+                          <span className="fw-bold"> {game.awayTeam}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Desktop - grid 5 kolumn dla normalnych nazw */
+                      <div
+                        className="d-none d-md-grid align-items-center"
+                        style={{
+                          gridTemplateColumns: '1fr auto auto auto 1fr',
+                          gap: '8px'
+                        }}
+                      >
+                        <span className="fw-bold text-end">{game.homeTeam}</span>
+                        <span className={`fi fi-${game.homeCountryCode?.toLowerCase()}`}></span>
+                        {game.gameStatus === 'FINISHED' ? (
+                          <Link
+                            to={`/results/${game.id}`}
+                            className="game-score text-primary text-center text-decoration-none"
+                            style={{ fontWeight: 'bold' }}
+                          >
+                            {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                          </Link>
+                        ) : (
+                          <strong className="game-score text-primary text-center">
+                            {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                          </strong>
+                        )}
+                        <span className={`fi fi-${game.awayCountryCode?.toLowerCase()}`}></span>
+                        <span className="fw-bold text-start">{game.awayTeam}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Typ i przyciski - nowy wiersz na mobile */}
