@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { Container, Card, Row, Col, Table, Badge } from 'react-bootstrap';
+import { Container, Card, Row, Col } from 'react-bootstrap';
 import { Doughnut } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { resultsApi } from '../services/api';
@@ -25,8 +25,18 @@ function GameResults() {
       const data = response.data;
 
       if (data && data.length > 0) {
-        setResults(data);
-        calculateStats(data);
+        // Sortowanie: najpierw po punktach (malejąco), potem alfabetycznie
+        const sortedData = [...data].sort((a, b) => {
+          // Najpierw po punktach (malejąco)
+          if (b.points !== a.points) {
+            return b.points - a.points;
+          }
+          // Jeśli punkty takie same, sortuj alfabetycznie
+          return a.username.localeCompare(b.username);
+        });
+
+        setResults(sortedData);
+        calculateStats(sortedData);
       }
       setLoading(false);
     } catch (err) {
@@ -297,75 +307,271 @@ function GameResults() {
         </Row>
       )}
 
-      {/* Desktop Table View */}
-      <Card className="shadow mb-4 d-none d-md-block">
+      {/* Desktop View - Ranking style */}
+      <Card className="border-start border-success border-4 shadow mb-4 d-none d-md-block">
         <Card.Body>
-          <div className="table-responsive">
-            <Table bordered className="mb-0">
-              <thead>
-                <tr>
-                  <th>Nr</th>
-                  <th>Gracz</th>
-                  <th>Typowany Wynik</th>
-                  <th>Punkty</th>
-                </tr>
-              </thead>
-              <tbody>
-                {results && results.length > 0 ? (
-                  results.map((row, index) => (
-                    <tr key={index}>
-                      <td>{index + 1}</td>
-                      <td>{row.username}</td>
-                      <td>{row.predictedHomeScore} : {row.predictedAwayScore}</td>
-                      <td>{row.points}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="4" className="text-center h3 mb-2 text-gray-800">
-                      Brak rezultatów do wyświetlenia
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </Table>
-          </div>
+          {results && results.length > 0 ? (
+            <div className="results-list" style={{ fontSize: '0.9rem' }}>
+              {results.map((row, index) => {
+                const getPositionStyle = (idx) => {
+                  if (idx === 0) return { color: '#FFD700', fontWeight: 'bold' }; // złoty
+                  if (idx === 1) return { color: '#C0C0C0', fontWeight: 'bold' }; // srebrny
+                  if (idx === 2) return { color: '#CD7F32', fontWeight: 'bold' }; // brązowy
+                  return { color: '#000000', fontWeight: 'bold' }; // czarny
+                };
+
+                const getInitials = (username) => {
+                  if (!username) return '?';
+                  const parts = username.trim().split(' ');
+                  if (parts.length >= 2) {
+                    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                  }
+                  return username.substring(0, 2).toUpperCase();
+                };
+
+                const getAvatarBackgroundColor = (idx) => {
+                  const colors = [
+                    '#FFD700', // gold
+                    '#C0C0C0', // silver
+                    '#CD7F32', // bronze
+                    '#4e73df', // blue
+                    '#1cc88a', // green
+                    '#36b9cc', // cyan
+                    '#f6c23e', // yellow
+                    '#e74a3b', // red
+                    '#858796', // gray
+                    '#5a5c69'  // dark gray
+                  ];
+                  return colors[idx % colors.length];
+                };
+
+                return (
+                  <div
+                    key={index}
+                    className="d-flex align-items-center p-2 rounded"
+                    style={{
+                      borderBottom: index < results.length - 1 ? '1px solid #e3e6f0' : 'none'
+                    }}
+                  >
+                    {/* Pozycja */}
+                    <span
+                      className="d-flex align-items-center"
+                      style={{ minWidth: '35px', fontSize: '0.95rem', ...getPositionStyle(index), gap: '4px' }}
+                    >
+                      {index + 1}.
+                    </span>
+
+                    {/* Avatar */}
+                    <div
+                      className="d-flex align-items-center justify-content-center rounded-circle me-2"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(index),
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.75rem',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(index)}` : '1px solid #e3e6f0'
+                      }}
+                    >
+                      {row.avatarUrl ? (
+                        <img
+                          src={row.avatarUrl}
+                          alt={row.username}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = getInitials(row.username);
+                          }}
+                        />
+                      ) : (
+                        getInitials(row.username)
+                      )}
+                    </div>
+
+                    {/* Username */}
+                    <span
+                      style={{
+                        fontSize: '0.9rem',
+                        flex: 1,
+                        minWidth: 0,
+                        color: '#000000'
+                      }}
+                    >
+                      {row.username}
+                    </span>
+
+                    {/* Typowany wynik */}
+                    <span
+                      className="me-3"
+                      style={{
+                        fontSize: '0.9rem',
+                        fontFamily: 'monospace',
+                        fontWeight: '600',
+                        color: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        padding: '4px 12px',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(78, 115, 223, 0.2)',
+                        minWidth: '60px',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {row.predictedHomeScore}:{row.predictedAwayScore}
+                    </span>
+
+                    {/* Punkty */}
+                    <span
+                      style={{
+                        fontSize: '0.9rem',
+                        width: '70px',
+                        textAlign: 'right',
+                        flexShrink: 0,
+                        color: '#000000'
+                      }}
+                    >
+                      {row.points} pkt
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-muted mb-0">Brak rezultatów do wyświetlenia</p>
+          )}
         </Card.Body>
       </Card>
 
-      {/* Mobile Card View */}
-      <div className="d-md-none">
-        {results && results.length > 0 ? (
-          results.map((row, index) => (
-            <Card key={index} className="shadow mb-3">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <Badge bg="secondary" pill className="me-2">#{index + 1}</Badge>
-                    <strong>{row.username}</strong>
-                  </div>
-                  <div className="text-end">
-                    <div>
-                      <Badge bg="info" pill className="mb-1">
-                        {row.predictedHomeScore}:{row.predictedAwayScore}
-                      </Badge>
+      {/* Mobile View - Ranking style */}
+      <Card className="border-start border-success border-4 shadow mb-4 d-md-none">
+        <Card.Body>
+          {results && results.length > 0 ? (
+            <div className="results-list" style={{ fontSize: '0.9rem' }}>
+              {results.map((row, index) => {
+                const getPositionStyle = (idx) => {
+                  if (idx === 0) return { color: '#FFD700', fontWeight: 'bold' };
+                  if (idx === 1) return { color: '#C0C0C0', fontWeight: 'bold' };
+                  if (idx === 2) return { color: '#CD7F32', fontWeight: 'bold' };
+                  return { color: '#000000', fontWeight: 'bold' };
+                };
+
+                const getInitials = (username) => {
+                  if (!username) return '?';
+                  const parts = username.trim().split(' ');
+                  if (parts.length >= 2) {
+                    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+                  }
+                  return username.substring(0, 2).toUpperCase();
+                };
+
+                const getAvatarBackgroundColor = (idx) => {
+                  const colors = [
+                    '#FFD700', '#C0C0C0', '#CD7F32', '#4e73df', '#1cc88a',
+                    '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#5a5c69'
+                  ];
+                  return colors[idx % colors.length];
+                };
+
+                return (
+                  <div
+                    key={index}
+                    className="d-flex align-items-center p-2 rounded"
+                    style={{
+                      borderBottom: index < results.length - 1 ? '1px solid #e3e6f0' : 'none'
+                    }}
+                  >
+                    {/* Pozycja */}
+                    <span
+                      className="d-flex align-items-center"
+                      style={{ minWidth: '35px', fontSize: '0.95rem', ...getPositionStyle(index), gap: '4px' }}
+                    >
+                      {index + 1}.
+                    </span>
+
+                    {/* Avatar */}
+                    <div
+                      className="d-flex align-items-center justify-content-center rounded-circle me-2"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(index),
+                        color: 'white',
+                        fontWeight: 'bold',
+                        fontSize: '0.75rem',
+                        flexShrink: 0,
+                        overflow: 'hidden',
+                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(index)}` : '1px solid #e3e6f0'
+                      }}
+                    >
+                      {row.avatarUrl ? (
+                        <img
+                          src={row.avatarUrl}
+                          alt={row.username}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.parentElement.innerHTML = getInitials(row.username);
+                          }}
+                        />
+                      ) : (
+                        getInitials(row.username)
+                      )}
                     </div>
-                    <div>
-                      <Badge bg="success">{row.points} pkt</Badge>
-                    </div>
+
+                    {/* Username */}
+                    <span
+                      style={{
+                        fontSize: '0.9rem',
+                        flex: 1,
+                        minWidth: 0,
+                        color: '#000000'
+                      }}
+                    >
+                      {row.username}
+                    </span>
+
+                    {/* Typowany wynik */}
+                    <span
+                      className="me-2"
+                      style={{
+                        fontSize: '0.9rem',
+                        fontFamily: 'monospace',
+                        fontWeight: '600',
+                        color: '#4e73df',
+                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        border: '1px solid rgba(78, 115, 223, 0.2)',
+                        minWidth: '50px',
+                        textAlign: 'center'
+                      }}
+                    >
+                      {row.predictedHomeScore}:{row.predictedAwayScore}
+                    </span>
+
+                    {/* Punkty */}
+                    <span
+                      style={{
+                        fontSize: '0.9rem',
+                        width: '60px',
+                        textAlign: 'right',
+                        flexShrink: 0,
+                        color: '#000000'
+                      }}
+                    >
+                      {row.points} pkt
+                    </span>
                   </div>
-                </div>
-              </Card.Body>
-            </Card>
-          ))
-        ) : (
-          <Card className="shadow mb-3">
-            <Card.Body className="text-center text-muted">
-              Brak rezultatów do wyświetlenia
-            </Card.Body>
-          </Card>
-        )}
-      </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-muted mb-0">Brak rezultatów do wyświetlenia</p>
+          )}
+        </Card.Body>
+      </Card>
     </Container>
   );
 }

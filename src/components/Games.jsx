@@ -10,7 +10,7 @@ function Games() {
   const [error, setError] = useState(null);
   const [editingGameId, setEditingGameId] = useState(null);
   const [editedScores, setEditedScores] = useState({});
-  const [filter, setFilter] = useState('ALL'); // ALL, FINISHED, SCHEDULED
+  const [filter, setFilter] = useState('SCHEDULED'); // ALL, FINISHED, SCHEDULED
 
   useEffect(() => {
     loadGames();
@@ -43,8 +43,26 @@ function Games() {
         };
       });
 
-      console.log('Games with predictions:', gamesWithPredictions.filter(g => g.prediction));
-      setGames(gamesWithPredictions);
+      // Sortuj mecze po dacie
+      const sortedGames = [...gamesWithPredictions].sort((a, b) =>
+        new Date(a.gameDate) - new Date(b.gameDate)
+      );
+
+      // Oblicz sumę punktów dla zakończonych meczów
+      let cumulativePoints = 0;
+      const gamesWithCumulativePoints = sortedGames.map(game => {
+        if (game.gameStatus === 'FINISHED' && game.prediction?.points !== undefined && game.prediction?.points !== null) {
+          cumulativePoints += game.prediction.points;
+          return {
+            ...game,
+            cumulativePoints: cumulativePoints
+          };
+        }
+        return game;
+      });
+
+      console.log('Games with predictions:', gamesWithCumulativePoints.filter(g => g.prediction));
+      setGames(gamesWithCumulativePoints);
       setLoading(false);
     } catch (err) {
       console.error('Error loading games:', err);
@@ -64,15 +82,12 @@ function Games() {
       return;
     }
 
-    if (!window.confirm('Czy na pewno chcesz usunąć ten typowany wynik?')) {
-      return;
-    }
-
     console.log('Attempting to delete prediction:', predictionId);
 
     try {
       const response = await predictionApi.deletePrediction(predictionId);
       console.log('Delete successful:', response);
+      setEditingGameId(null); // Wyjdź z trybu edycji
       await loadGames();
     } catch (err) {
       console.error('Error deleting prediction:', err);
@@ -81,6 +96,7 @@ function Games() {
       // Jeśli predykcja nie istnieje, po prostu odśwież dane
       if (err.response?.status === 404 || err.response?.data?.message?.includes('No such prediction')) {
         console.log('Prediction not found, refreshing data');
+        setEditingGameId(null); // Wyjdź z trybu edycji
         await loadGames();
       } else {
         alert('Nie udało się usunąć typu: ' + (err.response?.data?.message || err.message));
@@ -184,12 +200,19 @@ function Games() {
 
   const getFilteredGames = () => {
     if (filter === 'FINISHED') {
-      return games.filter(game => game.gameStatus === 'FINISHED');
+      // Zakończone: od najbliższej (najnowszej) do najdawniejszej - malejąco
+      return games
+        .filter(game => game.gameStatus === 'FINISHED')
+        .sort((a, b) => new Date(b.gameDate) - new Date(a.gameDate));
     }
     if (filter === 'SCHEDULED') {
-      return games.filter(game => game.gameStatus === 'SCHEDULED');
+      // Nadchodzące: od najbliższej do najdalszej - rosnąco
+      return games
+        .filter(game => game.gameStatus === 'SCHEDULED')
+        .sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
     }
-    return games; // ALL
+    // Wszystkie: chronologicznie od pierwszego do ostatniego - rosnąco
+    return [...games].sort((a, b) => new Date(a.gameDate) - new Date(b.gameDate));
   };
 
   const filteredGames = getFilteredGames();
@@ -381,6 +404,12 @@ function Games() {
                             style={{ width: '50px', textAlign: 'center', fontFamily: 'monospace', fontWeight: '600' }}
                             value={editedScores[game.id]?.home || ''}
                             onChange={(e) => handleScoreChange(game.id, 'home', e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                savePrediction(game);
+                              }
+                            }}
                             autoFocus
                           />
                           <span style={{ fontWeight: 'bold', color: '#4e73df' }}>:</span>
@@ -391,6 +420,12 @@ function Games() {
                             style={{ width: '50px', textAlign: 'center', fontFamily: 'monospace', fontWeight: '600' }}
                             value={editedScores[game.id]?.away || ''}
                             onChange={(e) => handleScoreChange(game.id, 'away', e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                savePrediction(game);
+                              }
+                            }}
                           />
                         </div>
                         {/* Linia 2: Przyciski wyśrodkowane */}
@@ -413,89 +448,45 @@ function Games() {
                           >
                             <i className="fas fa-times"></i>
                           </Button>
+                          {game.prediction && (
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              style={{ minWidth: '38px', padding: '4px 8px' }}
+                              onClick={(e) => handleDeletePrediction(game.prediction.id, e)}
+                              title="Usuń"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ) : (
                       <>
                         {/* Środek - typ i punkty wyśrodkowane */}
                         {game.prediction && (
-                          <div style={{ position: 'relative', display: 'inline-block' }}>
-                            <span
-                              className="me-2 btn btn-sm prediction-hover"
-                              style={{
-                                backgroundColor: 'rgba(78, 115, 223, 0.15)',
-                                color: '#4e73df',
-                                border: '1px solid rgba(78, 115, 223, 0.3)',
-                                cursor: game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) ? 'pointer' : 'default',
-                                width: '60px',
-                                padding: '4px 8px',
-                                fontFamily: 'monospace',
-                                fontSize: '0.95rem',
-                                textAlign: 'center',
-                                position: 'relative',
-                                fontWeight: '600'
-                              }}
-                            >
-                              {game.prediction.predictedHomeScore}:{game.prediction.predictedAwayScore}
-
-                              {/* Popup z opcjami - pojawia się na hover */}
-                              {game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) && (
-                                <div
-                                  className="prediction-actions-popup"
-                                  style={{
-                                    position: 'absolute',
-                                    bottom: '100%',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    marginBottom: '8px',
-                                    backgroundColor: 'white',
-                                    border: '1px solid #ddd',
-                                    borderRadius: '8px',
-                                    padding: '8px',
-                                    boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                                    display: 'none',
-                                    zIndex: 1000,
-                                    whiteSpace: 'nowrap'
-                                  }}
-                                >
-                                  <Button
-                                    variant="outline-primary"
-                                    size="sm"
-                                    className="me-2"
-                                    style={{ minWidth: '38px', padding: '4px 8px' }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      startEditing(game);
-                                    }}
-                                    title="Edytuj"
-                                  >
-                                    <i className="fas fa-edit"></i>
-                                  </Button>
-                                  <Button
-                                    variant="outline-danger"
-                                    size="sm"
-                                    style={{ minWidth: '38px', padding: '4px 8px' }}
-                                    onClick={(e) => handleDeletePrediction(game.prediction.id, e)}
-                                    title="Usuń"
-                                  >
-                                    <i className="fas fa-trash"></i>
-                                  </Button>
-                                  {/* Strzałka */}
-                                  <div style={{
-                                    position: 'absolute',
-                                    bottom: '-6px',
-                                    left: '50%',
-                                    transform: 'translateX(-50%)',
-                                    width: '0',
-                                    height: '0',
-                                    borderLeft: '6px solid transparent',
-                                    borderRight: '6px solid transparent',
-                                    borderTop: '6px solid white'
-                                  }}></div>
-                                </div>
-                              )}
-                            </span>
-                          </div>
+                          <span
+                            className="me-2 btn btn-sm"
+                            style={{
+                              backgroundColor: 'rgba(78, 115, 223, 0.15)',
+                              color: '#4e73df',
+                              border: '1px solid rgba(78, 115, 223, 0.3)',
+                              cursor: game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) ? 'pointer' : 'default',
+                              width: '60px',
+                              padding: '4px 8px',
+                              fontFamily: 'monospace',
+                              fontSize: '0.95rem',
+                              textAlign: 'center',
+                              fontWeight: '600'
+                            }}
+                            onClick={() => {
+                              if (game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate)) {
+                                startEditing(game);
+                              }
+                            }}
+                          >
+                            {game.prediction.predictedHomeScore}:{game.prediction.predictedAwayScore}
+                          </span>
                         )}
 
                         {game.prediction?.points !== undefined && game.prediction?.points !== null && (
@@ -503,6 +494,11 @@ function Games() {
                             bg={game.prediction.points === 3 ? 'success' : game.prediction.points === 1 ? 'warning' : 'secondary'}
                           >
                             {game.prediction.points} pkt
+                            {game.gameStatus === 'FINISHED' && game.cumulativePoints !== undefined && (
+                              <span style={{ marginLeft: '4px', fontSize: '0.85em', opacity: 0.9 }}>
+                                (suma: {game.cumulativePoints})
+                              </span>
+                            )}
                           </Badge>
                         )}
 
