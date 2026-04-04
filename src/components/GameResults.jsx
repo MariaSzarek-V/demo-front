@@ -123,14 +123,14 @@ function GameResults() {
     datasets: [{
       data: [gameStats.exactScores, gameStats.correctOutcome, gameStats.incorrect],
       backgroundColor: [
-        'rgba(28, 200, 138, 0.8)',
-        'rgba(246, 194, 62, 0.8)',
-        'rgba(231, 74, 59, 0.8)'
+        'rgba(78, 141, 156, 0.8)',
+        'rgba(255, 179, 63, 0.8)',
+        'rgba(192, 7, 7, 0.8)'
       ],
       hoverBackgroundColor: [
-        'rgba(28, 200, 138, 1)',
-        'rgba(246, 194, 62, 1)',
-        'rgba(231, 74, 59, 1)'
+        'rgba(78, 141, 156, 1)',
+        'rgba(255, 179, 63, 1)',
+        'rgba(192, 7, 7, 1)'
       ],
       borderWidth: 2,
       borderColor: '#fff'
@@ -382,11 +382,11 @@ function GameResults() {
                     '#FFD700', // gold
                     '#C0C0C0', // silver
                     '#CD7F32', // bronze
-                    '#4e73df', // blue
-                    '#1cc88a', // green
-                    '#36b9cc', // cyan
-                    '#f6c23e', // yellow
-                    '#e74a3b', // red
+                    '#296374', // teal dark
+                    '#4E8D9C', // teal medium
+                    '#629FAD', // teal light
+                    '#FFB33F', // orange
+                    '#C00707', // red
                     '#858796', // gray
                     '#5a5c69'  // dark gray
                   ];
@@ -516,8 +516,8 @@ function GameResults() {
 
                 const getAvatarBackgroundColor = (idx) => {
                   const colors = [
-                    '#FFD700', '#C0C0C0', '#CD7F32', '#4e73df', '#1cc88a',
-                    '#36b9cc', '#f6c23e', '#e74a3b', '#858796', '#5a5c69'
+                    '#FFD700', '#C0C0C0', '#CD7F32', '#296374', '#4E8D9C',
+                    '#629FAD', '#FFB33F', '#C00707', '#858796', '#5a5c69'
                   ];
                   return colors[idx % colors.length];
                 };

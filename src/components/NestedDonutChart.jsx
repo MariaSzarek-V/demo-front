@@ -19,12 +19,12 @@ function NestedDonutChart() {
         label: 'Twoje typy',
         data: [predictedDraws, predictedWins],
         backgroundColor: [
-          'rgba(246, 194, 62, 0.4)',
-          'rgba(28, 200, 138, 0.4)'
+          'rgba(255, 179, 63, 0.4)',
+          'rgba(78, 141, 156, 0.4)'
         ],
         hoverBackgroundColor: [
-          'rgba(246, 194, 62, 0.6)',
-          'rgba(28, 200, 138, 0.6)'
+          'rgba(255, 179, 63, 0.6)',
+          'rgba(78, 141, 156, 0.6)'
         ],
         borderWidth: 2,
         borderColor: '#fff'
@@ -33,12 +33,12 @@ function NestedDonutChart() {
         label: 'Średnia innych graczy',
         data: [averagePredictedDraws, averagePredictedWins],
         backgroundColor: [
-          'rgba(246, 194, 62, 0.7)',
-          'rgba(28, 200, 138, 0.7)'
+          'rgba(255, 179, 63, 0.7)',
+          'rgba(78, 141, 156, 0.7)'
         ],
         hoverBackgroundColor: [
-          'rgba(246, 194, 62, 0.85)',
-          'rgba(28, 200, 138, 0.85)'
+          'rgba(255, 179, 63, 0.85)',
+          'rgba(78, 141, 156, 0.85)'
         ],
         borderWidth: 2,
         borderColor: '#fff'
@@ -47,12 +47,12 @@ function NestedDonutChart() {
         label: 'Rzeczywistość',
         data: [actualDraws, actualWins],
         backgroundColor: [
-          'rgba(246, 194, 62, 1)',
-          'rgba(28, 200, 138, 1)'
+          'rgba(255, 179, 63, 1)',
+          'rgba(78, 141, 156, 1)'
         ],
         hoverBackgroundColor: [
-          'rgba(244, 182, 25, 1)',
-          'rgba(23, 166, 115, 1)'
+          'rgba(240, 160, 40, 1)',
+          'rgba(60, 120, 135, 1)'
         ],
         borderWidth: 2,
         borderColor: '#fff'
@@ -72,37 +72,37 @@ function NestedDonutChart() {
             return [
               {
                 text: 'Remisy (Twoje typy)',
-                fillStyle: 'rgba(246, 194, 62, 0.4)',
+                fillStyle: 'rgba(255, 179, 63, 0.4)',
                 hidden: false,
                 index: 0
               },
               {
                 text: 'Remisy (Średnia innych)',
-                fillStyle: 'rgba(246, 194, 62, 0.7)',
+                fillStyle: 'rgba(255, 179, 63, 0.7)',
                 hidden: false,
                 index: 1
               },
               {
                 text: 'Remisy (Rzeczywistość)',
-                fillStyle: 'rgba(246, 194, 62, 1)',
+                fillStyle: 'rgba(255, 179, 63, 1)',
                 hidden: false,
                 index: 2
               },
               {
                 text: 'Zwycięstwa (Twoje typy)',
-                fillStyle: 'rgba(28, 200, 138, 0.4)',
+                fillStyle: 'rgba(78, 141, 156, 0.4)',
                 hidden: false,
                 index: 3
               },
               {
                 text: 'Zwycięstwa (Średnia innych)',
-                fillStyle: 'rgba(28, 200, 138, 0.7)',
+                fillStyle: 'rgba(78, 141, 156, 0.7)',
                 hidden: false,
                 index: 4
               },
               {
                 text: 'Zwycięstwa (Rzeczywistość)',
-                fillStyle: 'rgba(28, 200, 138, 1)',
+                fillStyle: 'rgba(78, 141, 156, 1)',
                 hidden: false,
                 index: 5
               }
