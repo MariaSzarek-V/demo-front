@@ -10,6 +10,7 @@ function Games() {
   const [error, setError] = useState(null);
   const [editingGameId, setEditingGameId] = useState(null);
   const [editedScores, setEditedScores] = useState({});
+  const [filter, setFilter] = useState('ALL'); // ALL, FINISHED, SCHEDULED
 
   useEffect(() => {
     loadGames();
@@ -181,6 +182,18 @@ function Games() {
     return new Date(gameDate) <= new Date();
   };
 
+  const getFilteredGames = () => {
+    if (filter === 'FINISHED') {
+      return games.filter(game => game.gameStatus === 'FINISHED');
+    }
+    if (filter === 'SCHEDULED') {
+      return games.filter(game => game.gameStatus === 'SCHEDULED');
+    }
+    return games; // ALL
+  };
+
+  const filteredGames = getFilteredGames();
+
   if (loading) {
     return (
       <Container fluid className="px-2 px-md-4 px-lg-5">
@@ -205,11 +218,36 @@ function Games() {
 
   return (
     <Container fluid className="px-2 px-md-4 px-lg-5" style={{ height: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Filter buttons */}
+      <div className="mb-2 d-flex gap-2 justify-content-center">
+        <Button
+          variant={filter === 'ALL' ? 'primary' : 'outline-primary'}
+          size="sm"
+          onClick={() => setFilter('ALL')}
+        >
+          Wszystkie
+        </Button>
+        <Button
+          variant={filter === 'SCHEDULED' ? 'primary' : 'outline-primary'}
+          size="sm"
+          onClick={() => setFilter('SCHEDULED')}
+        >
+          Nadchodzące
+        </Button>
+        <Button
+          variant={filter === 'FINISHED' ? 'primary' : 'outline-primary'}
+          size="sm"
+          onClick={() => setFilter('FINISHED')}
+        >
+          Zakończone
+        </Button>
+      </div>
+
       <Card className="border-start border-primary border-4 shadow" style={{ flex: '1', minHeight: 0, marginBottom: '0.5rem' }}>
         <Card.Body style={{ maxHeight: '100%', overflowY: 'auto' }}>
-          {games && games.length > 0 ? (
+          {filteredGames && filteredGames.length > 0 ? (
             <div className="games-list" style={{ fontSize: '0.9rem' }}>
-              {games.map((game) => (
+              {filteredGames.map((game) => (
                 <div
                   key={game.id}
                   className={`game-item ${game.gameStatus === 'FINISHED' ? 'game-item-finished' : ''}`}
@@ -489,7 +527,7 @@ function Games() {
           ) : (
             <div className="text-center text-muted py-3">
               <i className="fas fa-futbol fa-2x mb-2 text-gray-300 d-block"></i>
-              Brak meczów do wyświetlenia
+              {games.length === 0 ? 'Brak meczów do wyświetlenia' : 'Brak meczów w wybranej kategorii'}
             </div>
           )}
         </Card.Body>
