@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Container, Card, Row, Col } from 'react-bootstrap';
-import { Doughnut } from 'react-chartjs-2';
+import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { resultsApi } from '../services/api';
 
@@ -119,7 +119,7 @@ function GameResults() {
   };
 
   const chartData = gameStats ? {
-    labels: ['Dokładne (3 pkt)', 'Trafione (1 pkt)', 'Nietrafione (0 pkt)'],
+    labels: ['3 pkt', '1 pkt', '0 pkt'],
     datasets: [{
       data: [gameStats.exactScores, gameStats.correctOutcome, gameStats.incorrect],
       backgroundColor: [
@@ -186,27 +186,91 @@ function GameResults() {
     <Container fluid className="px-2 px-md-4 px-lg-5">
       {/* Informacja o meczu */}
       {gameInfo && (
-        <Row className="mb-4">
+        <Row className="mb-2">
           <Col xs={12}>
-            <Card className="border-start border-primary border-4 shadow h-100 py-2">
-              <Card.Body>
-                <Row className="align-items-center">
-                  <Col>
-                    <div className="text-xs fw-bold text-primary text-uppercase mb-1">
-                      {formatDate(gameInfo.gameDate)}
+            <Card className="border-start border-primary border-4 shadow h-100">
+              <Card.Body style={{ padding: '0.5rem' }}>
+                <div>
+                  <span className="game-date text-muted d-block mb-1" style={{ fontSize: '0.9rem' }}>
+                    {formatDate(gameInfo.gameDate)}
+                  </span>
+
+                  {/* Sprawdź czy nazwy są za długie - jeśli tak, użyj układu pionowego */}
+                  {((gameInfo.homeTeam?.length || 0) + (gameInfo.awayTeam?.length || 0)) > 24 ? (
+                    /* Układ pionowy (3 linie) dla długich nazw */
+                    <div className="d-flex d-md-none flex-column align-items-center" style={{ lineHeight: '1.4' }}>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'auto auto',
+                          gap: '6px',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <span className="fw-bold text-end">{gameInfo.homeTeam}</span>
+                        <span className={`fi fi-${gameInfo.homeCountryCode?.toLowerCase()}`}></span>
+                      </div>
+                      <strong className="game-score text-primary" style={{ fontSize: '1.1rem', margin: '4px 0' }}>
+                        {gameInfo.homeScore !== null && gameInfo.awayScore !== null
+                          ? `${gameInfo.homeScore}:${gameInfo.awayScore}`
+                          : '-:-'}
+                      </strong>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'auto auto',
+                          gap: '6px',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        <span className={`fi fi-${gameInfo.awayCountryCode?.toLowerCase()}`}></span>
+                        <span className="fw-bold text-start">{gameInfo.awayTeam}</span>
+                      </div>
                     </div>
-                    <div className="h5 mb-0 fw-bold text-gray-800">
-                      <span className={`fi fi-${gameInfo.homeCountryCode?.toLowerCase()} me-1`}></span>
-                      <span>{gameInfo.homeTeam}</span>
-                      <span className="text-primary mx-2">{gameInfo.homeScore}:{gameInfo.awayScore}</span>
-                      <span>{gameInfo.awayTeam}</span>
-                      <span className={`fi fi-${gameInfo.awayCountryCode?.toLowerCase()} ms-1`}></span>
+                  ) : (
+                    /* Układ grid (1 linia) - 5 kolumn */
+                    <div
+                      className="d-grid d-md-none align-items-center"
+                      style={{
+                        gridTemplateColumns: 'auto auto auto auto auto',
+                        gap: '6px',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <span className="fw-bold text-end">{gameInfo.homeTeam}</span>
+                      <span className={`fi fi-${gameInfo.homeCountryCode?.toLowerCase()}`} style={{ flexShrink: 0 }}></span>
+                      <strong className="game-score text-primary text-center">
+                        {gameInfo.homeScore !== null && gameInfo.awayScore !== null
+                          ? `${gameInfo.homeScore}:${gameInfo.awayScore}`
+                          : '-:-'}
+                      </strong>
+                      <span className={`fi fi-${gameInfo.awayCountryCode?.toLowerCase()}`} style={{ flexShrink: 0 }}></span>
+                      <span className="fw-bold text-start">{gameInfo.awayTeam}</span>
                     </div>
-                  </Col>
-                  <Col xs="auto">
-                    <i className="fas fa-futbol fa-2x text-gray-300"></i>
-                  </Col>
-                </Row>
+                  )}
+
+                  {/* Desktop - grid 5 kolumn */}
+                  <div
+                    className="d-none d-md-grid align-items-center"
+                    style={{
+                      gridTemplateColumns: 'auto auto auto auto auto',
+                      gap: '8px',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    <span className="fw-bold text-end">{gameInfo.homeTeam}</span>
+                    <span className={`fi fi-${gameInfo.homeCountryCode?.toLowerCase()}`}></span>
+                    <strong className="game-score text-primary text-center">
+                      {gameInfo.homeScore !== null && gameInfo.awayScore !== null
+                        ? `${gameInfo.homeScore}:${gameInfo.awayScore}`
+                        : '-:-'}
+                    </strong>
+                    <span className={`fi fi-${gameInfo.awayCountryCode?.toLowerCase()}`}></span>
+                    <span className="fw-bold text-start">{gameInfo.awayTeam}</span>
+                  </div>
+                </div>
               </Card.Body>
             </Card>
           </Col>
@@ -220,86 +284,70 @@ function GameResults() {
           <Col xl={6} md={6} className="mb-4">
             <Card className="border-start border-info border-4 shadow h-100 py-2">
               <Card.Body>
-                <Row className="align-items-center">
-                  <Col>
-                    <div className="text-xs fw-bold text-info text-uppercase mb-1">
-                      Najczęściej typowany wynik
-                    </div>
+                <div className="fw-bold text-info text-uppercase mb-2" style={{ fontSize: '1rem' }}>
+                  Najczęstszy typ
+                </div>
 
-                    <div className="mb-3">
-                      {gameStats.mostCommonCount === 1 ? (
-                        <div className="h6 mb-0 fw-bold text-muted">
-                          Brak powtarzających się typów
-                        </div>
-                      ) : (
-                        <div>
-                          {gameStats.mostCommonPredictions.map((prediction, index) => (
-                            <div key={index}>
-                              <span className="h5 mb-0 fw-bold text-gray-800">{prediction}</span>
-                              <small className="text-muted">
-                                {' '}({gameStats.mostCommonCount} {getPluralForm(gameStats.mostCommonCount)})
-                              </small>
-                            </div>
-                          ))}
-                        </div>
-                      )}
+                <div className="mb-3">
+                  {gameStats.mostCommonCount === 1 ? (
+                    <div className="mb-0 fw-bold text-muted" style={{ fontSize: '0.9rem' }}>
+                      Brak powtarzających się typów
                     </div>
-
-                    {/* Statystyka rozstrzygnięć */}
-                    {gameInfo && (
-                      <div className="mt-2 pt-2" style={{ borderTop: '1px solid #e3e6f0' }}>
-                        <div className="text-xs fw-bold text-secondary mb-2">ROZSTRZYGNIĘCIA:</div>
-                        <div className="small">
-                          <div className="mb-1">
-                            <i className="fas fa-home text-success me-1"></i>
-                            <span>{gameInfo.homeTeam}</span>:
-                            <strong> {gameStats.homeTeamWinPredictions}</strong>
-                            {' '}{getPluralForm(gameStats.homeTeamWinPredictions)}
-                          </div>
-                          <div className="mb-1">
-                            <i className="fas fa-plane text-primary me-1"></i>
-                            <span>{gameInfo.awayTeam}</span>:
-                            <strong> {gameStats.awayTeamWinPredictions}</strong>
-                            {' '}{getPluralForm(gameStats.awayTeamWinPredictions)}
-                          </div>
-                          <div>
-                            <i className="fas fa-handshake text-warning me-1"></i>
-                            Remis:
-                            <strong> {gameStats.drawPredictions}</strong>
-                            {' '}{getPluralForm(gameStats.drawPredictions)}
-                          </div>
+                  ) : (
+                    <div>
+                      {gameStats.mostCommonPredictions.map((prediction, index) => (
+                        <div key={index} className="mb-1 fw-bold text-gray-800" style={{ fontSize: '0.9rem' }}>
+                          {prediction} - {gameStats.mostCommonCount} {getPluralForm(gameStats.mostCommonCount)}
                         </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Statystyka typowanych zwycięstw */}
+                {gameInfo && (
+                  <div className="mt-2 pt-2" style={{ borderTop: '1px solid #e3e6f0' }}>
+                    <div className="fw-bold text-secondary mb-2" style={{ fontSize: '1rem' }}>TYPOWANY ZWYCIĘZCA</div>
+                    <div className="small">
+                      <div className="mb-1">
+                        <span className={`fi fi-${gameInfo.homeCountryCode?.toLowerCase()} me-1`}></span>
+                        {gameInfo.homeTeam} - {gameStats.homeTeamWinPredictions} {getPluralForm(gameStats.homeTeamWinPredictions)}
                       </div>
-                    )}
-                  </Col>
-                  <Col xs="auto">
-                    <i className="fas fa-poll fa-2x text-gray-300"></i>
-                  </Col>
-                </Row>
+                      <div className="mb-1">
+                        <span className={`fi fi-${gameInfo.awayCountryCode?.toLowerCase()} me-1`}></span>
+                        {gameInfo.awayTeam} - {gameStats.awayTeamWinPredictions} {getPluralForm(gameStats.awayTeamWinPredictions)}
+                      </div>
+                      <div>
+                        <span style={{ display: 'inline-block', width: '20px', marginRight: '0.25rem' }}></span>
+                        Remis - {gameStats.drawPredictions} {getPluralForm(gameStats.drawPredictions)}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </Card.Body>
             </Card>
           </Col>
 
-          {/* Dokładność typów - Donut Chart */}
+          {/* Wyniki typowania - Pie Chart */}
           <Col xl={6} md={6} className="mb-4">
-            <Card className="shadow h-100">
-              <Card.Header className="py-3">
-                <h6 className="m-0 fw-bold text-primary">Dokładność typów</h6>
-              </Card.Header>
+            <Card className="border-start border-success border-4 shadow h-100 py-2">
               <Card.Body>
-                <div style={{ height: '200px', position: 'relative' }}>
-                  {chartData && <Doughnut data={chartData} options={chartOptions} />}
+                <div className="fw-bold text-success text-uppercase mb-2" style={{ fontSize: '1rem' }}>
+                  Wyniki typowania
                 </div>
-                <div className="mt-3 text-center small">
-                  <span className="me-2">
-                    <i className="fas fa-circle text-success"></i> Dokładne ({gameStats.exactScores})
-                  </span>
-                  <span className="me-2">
-                    <i className="fas fa-circle text-warning"></i> Trafione ({gameStats.correctOutcome})
-                  </span>
-                  <span className="me-2">
-                    <i className="fas fa-circle text-danger"></i> Nietrafione ({gameStats.incorrect})
-                  </span>
+                <div style={{ height: '200px', position: 'relative' }}>
+                  {chartData && <Pie data={chartData} options={chartOptions} />}
+                </div>
+                <div className="mt-3 small">
+                  <div className="mb-1">
+                    <i className="fas fa-circle text-success"></i> 3 pkt - {gameStats.exactScores} {getPluralForm(gameStats.exactScores)}
+                  </div>
+                  <div className="mb-1">
+                    <i className="fas fa-circle text-warning"></i> 1 pkt - {gameStats.correctOutcome} {getPluralForm(gameStats.correctOutcome)}
+                  </div>
+                  <div>
+                    <i className="fas fa-circle text-danger"></i> 0 pkt - {gameStats.incorrect} {getPluralForm(gameStats.incorrect)}
+                  </div>
                 </div>
               </Card.Body>
             </Card>
