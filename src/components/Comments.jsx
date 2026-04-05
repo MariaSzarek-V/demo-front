@@ -281,7 +281,20 @@ function Comments() {
   };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
+    // Handle array format from backend [year, month, day, hour, minute]
+    let date;
+    if (Array.isArray(dateString)) {
+      // LocalDateTime from Java comes as array
+      const [year, month, day, hour, minute] = dateString;
+      date = new Date(year, month - 1, day, hour, minute);
+    } else {
+      date = new Date(dateString);
+    }
+
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date';
+    }
+
     return date.toLocaleString('pl-PL', {
       year: 'numeric',
       month: '2-digit',
