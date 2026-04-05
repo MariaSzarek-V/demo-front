@@ -1,26 +1,26 @@
 import { useState, useEffect, useRef } from 'react';
 import { Container, Card, Form, Button } from 'react-bootstrap';
 import EmojiPicker from 'emoji-picker-react';
-import { commentApi } from '../services/api';
+import { chatApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
-function Comments() {
+function Chat() {
   const { user } = useAuth();
-  const [comments, setComments] = useState([]);
+  const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [newCommentText, setNewCommentText] = useState('');
+  const [newMessageText, setNewMessageText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showCombinedPicker, setShowCombinedPicker] = useState(false);
   const [pickerTab, setPickerTab] = useState('emoji'); // 'emoji' or 'gif'
-  const [showReactionsModal, setShowReactionsModal] = useState(null); // { commentId, emoji }
+  const [showReactionsModal, setShowReactionsModal] = useState(null); // { messageId, emoji }
   const [showReactionPicker, setShowReactionPicker] = useState(null);
   const [showMoreReactionsPicker, setShowMoreReactionsPicker] = useState(null);
   const [replyingTo, setReplyingTo] = useState(null);
-  const [expandedCommentId, setExpandedCommentId] = useState(null);
-  const [highlightedCommentId, setHighlightedCommentId] = useState(null);
+  const [expandedMessageId, setExpandedMessageId] = useState(null);
+  const [highlightedMessageId, setHighlightedMessageId] = useState(null);
   const [gifs, setGifs] = useState([]);
   const [gifSearchTerm, setGifSearchTerm] = useState('');
   const textareaRef = useRef(null);
@@ -55,7 +55,7 @@ function Comments() {
   };
 
   useEffect(() => {
-    loadComments();
+    loadMessages();
   }, []);
 
   useEffect(() => {
@@ -94,34 +94,34 @@ function Comments() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const scrollToComment = (commentId) => {
-    const element = document.getElementById(`comment-${commentId}`);
+  const scrollToMessage = (messageId) => {
+    const element = document.getElementById(`message-${messageId}`);
     if (element) {
       element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      setHighlightedCommentId(commentId);
-      setTimeout(() => setHighlightedCommentId(null), 2000);
+      setHighlightedMessageId(messageId);
+      setTimeout(() => setHighlightedMessageId(null), 2000);
     }
   };
 
-  const loadComments = async () => {
+  const loadMessages = async () => {
     try {
       setLoading(true);
-      const response = await commentApi.getAllComments();
+      const response = await chatApi.getAllMessages();
       // Odwróć kolejność - najstarsze na górze, najnowsze na dole
-      const sortedComments = response.data.reverse();
-      setComments(sortedComments);
+      const sortedMessages = response.data.reverse();
+      setMessages(sortedMessages);
       setLoading(false);
       // Scroll do dołu po załadowaniu
       setTimeout(scrollToBottom, 100);
     } catch (err) {
-      console.error('Error loading comments:', err);
-      setError('Nie udało się załadować komentarzy');
+      console.error('Error loading messages:', err);
+      setError('Nie udało się załadować wiadomośćy');
       setLoading(false);
     }
   };
 
   const handleTextChange = (e) => {
-    setNewCommentText(e.target.value);
+    setNewMessageText(e.target.value);
     autoResizeTextarea();
   };
 
@@ -137,11 +137,11 @@ function Comments() {
     const textarea = textareaRef.current;
     if (textarea) {
       const cursorPosition = textarea.selectionStart;
-      const textBeforeCursor = newCommentText.substring(0, cursorPosition);
-      const textAfterCursor = newCommentText.substring(cursorPosition);
+      const textBeforeCursor = newMessageText.substring(0, cursorPosition);
+      const textAfterCursor = newMessageText.substring(cursorPosition);
       const newText = textBeforeCursor + emojiObject.emoji + textAfterCursor;
 
-      setNewCommentText(newText);
+      setNewMessageText(newText);
       setShowCombinedPicker(false);
 
       setTimeout(() => {
@@ -180,14 +180,14 @@ function Comments() {
 
     try {
       setSubmitting(true);
-      const commentData = {
+      const messageData = {
         text: gifTag,
-        parentCommentId: replyingTo?.id || null
+        parentMessageId: replyingTo?.id || null
       };
-      await commentApi.createComment(commentData);
+      await chatApi.createMessage(messageData);
       setReplyingTo(null);
       setShowCombinedPicker(false);
-      await loadComments();
+      await loadMessages();
       setSubmitting(false);
       setTimeout(scrollToBottom, 100);
     } catch (err) {
@@ -197,21 +197,21 @@ function Comments() {
     }
   };
 
-  const handleReactionClick = async (commentId, emoji) => {
+  const handleReactionClick = async (messageId, emoji) => {
     try {
-      const comment = comments.find(c => c.id === commentId);
-      const userReacted = comment?.reactions?.some(r => r.username === user.username && r.emoji === emoji);
+      const currentMessage = messages.find(c => c.id === messageId);
+      const userReacted = currentMessage?.reactions?.some(r => r.username === user.username && r.emoji === emoji);
 
       if (userReacted) {
-        await commentApi.removeReaction(commentId, emoji);
+        await chatApi.removeReaction(messageId, emoji);
       } else {
-        await commentApi.addReaction(commentId, emoji);
+        await chatApi.addReaction(messageId, emoji);
       }
 
-      // Pobierz zaktualizowane komentarze bez scrollowania
-      const response = await commentApi.getAllComments();
-      const sortedComments = response.data.reverse();
-      setComments(sortedComments);
+      // Pobierz zaktualizowane wiadomośće bez scrollowania
+      const response = await chatApi.getAllMessages();
+      const sortedMessages = response.data.reverse();
+      setMessages(sortedMessages);
       setShowReactionPicker(null);
       setShowMoreReactionsPicker(null);
     } catch (err) {
@@ -219,8 +219,8 @@ function Comments() {
     }
   };
 
-  const handleMoreReactionEmojiClick = async (emojiObject, commentId) => {
-    await handleReactionClick(commentId, emojiObject.emoji);
+  const handleMoreReactionEmojiClick = async (emojiObject, messageId) => {
+    await handleReactionClick(messageId, emojiObject.emoji);
   };
 
   const groupReactions = (reactions) => {
@@ -244,29 +244,29 @@ function Comments() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!newCommentText.trim()) {
+    if (!newMessageText.trim()) {
       return;
     }
 
     try {
       setSubmitting(true);
-      const commentData = {
-        text: newCommentText,
-        parentCommentId: replyingTo?.id || null
+      const messageData = {
+        text: newMessageText,
+        parentMessageId: replyingTo?.id || null
       };
-      await commentApi.createComment(commentData);
-      setNewCommentText('');
+      await chatApi.createMessage(messageData);
+      setNewMessageText('');
       setReplyingTo(null);
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
       }
-      await loadComments();
+      await loadMessages();
       setSubmitting(false);
-      // Scroll do dołu po dodaniu komentarza
+      // Scroll do dołu po dodaniu wiadomośća
       setTimeout(scrollToBottom, 100);
     } catch (err) {
-      console.error('Error creating comment:', err);
-      alert('Nie udało się dodać komentarza');
+      console.error('Error creating message:', err);
+      alert('Nie udało się dodać wiadomośća');
       setSubmitting(false);
     }
   };
@@ -304,7 +304,7 @@ function Comments() {
     });
   };
 
-  const renderCommentText = (text) => {
+  const renderMessageText = (text) => {
     const gifRegex = /\[GIF:(https?:\/\/[^\]]+)\]/g;
     const parts = [];
     let lastIndex = 0;
@@ -360,46 +360,46 @@ function Comments() {
 
   return (
     <Container fluid className="px-1 px-md-2 px-lg-3" style={{ height: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Lista komentarzy z ograniczoną wysokością i scrollem - TYLKO TEN SCROLL */}
+      {/* Lista wiadomośćy z ograniczoną wysokością i scrollem - TYLKO TEN SCROLL */}
       <Card className="shadow mb-2" style={{ flex: '1', minHeight: 0, backgroundColor: '#f8f9fc' }}>
         <Card.Body style={{ maxHeight: '100%', overflowY: 'auto', padding: '0.3rem' }}>
-          {comments && comments.length > 0 ? (
-            <div className="comments-list">
-              {comments.map((comment, index) => {
-                const isMyComment = comment.username === user?.username;
-                const groupedReactions = groupReactions(comment.reactions);
+          {messages && messages.length > 0 ? (
+            <div className="messages-list">
+              {messages.map((message, index) => {
+                const isMyMessage = message.username === user?.username;
+                const groupedReactions = groupReactions(message.reactions);
 
-                // Sprawdź czy poprzedni komentarz jest od innej osoby
-                const previousComment = index > 0 ? comments[index - 1] : null;
-                const isDifferentAuthor = previousComment && previousComment.username !== comment.username;
+                // Sprawdź czy poprzedni wiadomość jest od innej osoby
+                const previousMessage = index > 0 ? messages[index - 1] : null;
+                const isDifferentAuthor = previousMessage && previousMessage.username !== message.username;
                 const marginBottom = isDifferentAuthor ? '12px' : '2px';
 
                 return (
                   <div
-                    key={comment.id}
-                    id={`comment-${comment.id}`}
+                    key={message.id}
+                    id={`message-${message.id}`}
                     style={{
                       display: 'flex',
                       flexDirection: 'column',
-                      alignItems: isMyComment ? 'flex-end' : 'flex-start',
+                      alignItems: isMyMessage ? 'flex-end' : 'flex-start',
                       marginBottom: marginBottom,
                       padding: '2px',
                       borderRadius: '8px',
-                      backgroundColor: highlightedCommentId === comment.id ? '#e0f2f4' : 'transparent',
+                      backgroundColor: highlightedMessageId === message.id ? '#e0f2f4' : 'transparent',
                       transition: 'background-color 0.3s ease'
                     }}
                   >
                     {/* Username and date */}
-                    {(!isMyComment || expandedCommentId === comment.id) && (
+                    {(!isMyMessage || expandedMessageId === message.id) && (
                       <div style={{
                         fontSize: 'clamp(0.65rem, 1.5vw, 0.75rem)',
                         color: '#858796',
-                        paddingLeft: isMyComment ? '0' : '40px',
-                        paddingRight: isMyComment ? '0' : '0',
+                        paddingLeft: isMyMessage ? '0' : '40px',
+                        paddingRight: isMyMessage ? '0' : '0',
                         marginBottom: '2px'
                       }}>
-                        {!isMyComment && <strong>{comment.username}</strong>}
-                        <span className={!isMyComment ? 'ms-2' : ''}>{formatDate(comment.createdAt)}</span>
+                        {!isMyMessage && <strong>{message.username}</strong>}
+                        <span className={!isMyMessage ? 'ms-2' : ''}>{formatDate(message.createdAt)}</span>
                       </div>
                     )}
 
@@ -407,20 +407,20 @@ function Comments() {
                     <div
                       style={{
                         display: 'flex',
-                        flexDirection: isMyComment ? 'row' : 'row',
+                        flexDirection: isMyMessage ? 'row' : 'row',
                         alignItems: 'flex-end',
                         gap: '8px',
                         width: '100%'
                       }}
                     >
                       {/* Avatar tylko dla wiadomości od innych - po lewej */}
-                      {!isMyComment && (
+                      {!isMyMessage && (
                         <div
                           style={{
                             width: '32px',
                             height: '32px',
                             borderRadius: '50%',
-                            backgroundColor: getUserColor(comment.username),
+                            backgroundColor: getUserColor(message.username),
                             color: 'white',
                             display: 'flex',
                             alignItems: 'center',
@@ -431,10 +431,10 @@ function Comments() {
                             overflow: 'hidden'
                           }}
                         >
-                          {comment.avatarUrl ? (
+                          {message.avatarUrl ? (
                             <img
-                              src={comment.avatarUrl}
-                              alt={comment.username}
+                              src={message.avatarUrl}
+                              alt={message.username}
                               style={{
                                 width: '100%',
                                 height: '100%',
@@ -442,7 +442,7 @@ function Comments() {
                               }}
                             />
                           ) : (
-                            comment.username.charAt(0).toUpperCase()
+                            message.username.charAt(0).toUpperCase()
                           )}
                         </div>
                       )}
@@ -452,23 +452,23 @@ function Comments() {
                         style={{
                           display: 'flex',
                           flexDirection: 'column',
-                          alignItems: isMyComment ? 'flex-end' : 'flex-start',
+                          alignItems: isMyMessage ? 'flex-end' : 'flex-start',
                           flex: 1,
                           minWidth: 0
                         }}
                       >
                         {/* Message bubble container */}
-                        <div style={{ position: 'relative', maxWidth: '92%', display: 'flex', flexDirection: 'column', alignItems: isMyComment ? 'flex-end' : 'flex-start' }}>
+                        <div style={{ position: 'relative', maxWidth: '92%', display: 'flex', flexDirection: 'column', alignItems: isMyMessage ? 'flex-end' : 'flex-start' }}>
                           {/* Quoted message bubble - ABOVE (Messenger style) */}
-                          {comment.parentCommentId && (
+                          {message.parentMessageId && (
                             <div
                               onClick={(e) => {
                                 e.stopPropagation();
-                                scrollToComment(comment.parentCommentId);
+                                scrollToMessage(message.parentMessageId);
                               }}
                               style={{
-                                backgroundColor: isMyComment ? '#d4e9ea' : '#f5f5f5',
-                                color: isMyComment ? '#1d3557' : '#5a5c69',
+                                backgroundColor: isMyMessage ? '#d4e9ea' : '#f5f5f5',
+                                color: isMyMessage ? '#1d3557' : '#5a5c69',
                                 padding: '6px 12px',
                                 borderRadius: '12px',
                                 fontSize: 'clamp(0.7rem, 1.6vw, 0.8rem)',
@@ -481,16 +481,16 @@ function Comments() {
                                 position: 'relative'
                               }}
                               onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = isMyComment ? '#c0dee0' : '#e8e8e8';
+                                e.currentTarget.style.backgroundColor = isMyMessage ? '#c0dee0' : '#e8e8e8';
                                 e.currentTarget.style.transform = 'translateY(-2px)';
                               }}
                               onMouseLeave={(e) => {
-                                e.currentTarget.style.backgroundColor = isMyComment ? '#d4e9ea' : '#f5f5f5';
+                                e.currentTarget.style.backgroundColor = isMyMessage ? '#d4e9ea' : '#f5f5f5';
                                 e.currentTarget.style.transform = 'translateY(0)';
                               }}
                             >
                               <div style={{ fontWeight: 'bold', marginBottom: '2px', fontSize: 'clamp(0.65rem, 1.5vw, 0.72rem)' }}>
-                                {comment.parentCommentUsername}
+                                {message.parentMessageUsername}
                               </div>
                               <div style={{
                                 overflow: 'hidden',
@@ -500,7 +500,7 @@ function Comments() {
                                 WebkitBoxOrient: 'vertical',
                                 wordBreak: 'break-word'
                               }}>
-                                {comment.parentCommentText}
+                                {message.parentMessageText}
                               </div>
                             </div>
                           )}
@@ -508,31 +508,31 @@ function Comments() {
                           {/* Main message bubble */}
                         <div
                           style={{ position: 'relative', width: '100%', zIndex: 1 }}
-                          onMouseEnter={() => setShowReactionPicker(comment.id)}
+                          onMouseEnter={() => setShowReactionPicker(message.id)}
                           onMouseLeave={() => {
-                            if (showMoreReactionsPicker !== comment.id) {
+                            if (showMoreReactionsPicker !== message.id) {
                               setShowReactionPicker(null);
                             }
                           }}
                           onClick={() => {
-                            if (isMyComment) {
-                              setExpandedCommentId(expandedCommentId === comment.id ? null : comment.id);
+                            if (isMyMessage) {
+                              setExpandedMessageId(expandedMessageId === message.id ? null : message.id);
                             } else {
-                              setShowReactionPicker(comment.id);
+                              setShowReactionPicker(message.id);
                             }
                           }}
                         >
-                      {isOnlyGif(comment.text) ? (
+                      {isOnlyGif(message.text) ? (
                         // Just render the GIF
                         <>
-                          {renderCommentText(comment.text)}
+                          {renderMessageText(message.text)}
                         </>
                       ) : (
                         // Render with bubble for text
                         <div
                           style={{
-                            backgroundColor: isMyComment ? '#0891b2' : 'white',
-                            color: isMyComment ? 'white' : '#333',
+                            backgroundColor: isMyMessage ? '#0891b2' : 'white',
+                            color: isMyMessage ? 'white' : '#333',
                             padding: '10px 14px',
                             borderRadius: '18px',
                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
@@ -541,7 +541,7 @@ function Comments() {
                             fontSize: 'clamp(0.85rem, 2vw, 0.95rem)'
                           }}
                         >
-                          {renderCommentText(comment.text)}
+                          {renderMessageText(message.text)}
                         </div>
                       )}
                         </div>
@@ -557,9 +557,9 @@ function Comments() {
                           }}
                         >
                           <button
-                            onClick={() => setShowReactionsModal({ commentId: comment.id })}
+                            onClick={() => setShowReactionsModal({ messageId: message.id })}
                             style={{
-                              backgroundColor: comment.reactions.some(r => r.username === user?.username) ? '#e0f2f1' : 'white',
+                              backgroundColor: message.reactions.some(r => r.username === user?.username) ? '#e0f2f1' : 'white',
                               border: 'none',
                               borderRadius: '10px',
                               padding: '2px 6px',
@@ -577,21 +577,21 @@ function Comments() {
                             ))}
                             {/* Total count */}
                             <span style={{ fontSize: 'clamp(0.7rem, 1.6vw, 0.8rem)', color: '#666', marginLeft: '2px', fontWeight: '600' }}>
-                              {comment.reactions.length}
+                              {message.reactions.length}
                             </span>
                           </button>
                         </div>
                       )}
 
                       {/* Reaction picker popup */}
-                      {showReactionPicker === comment.id && (
+                      {showReactionPicker === message.id && (
                         <div
                           ref={reactionPickerRef}
                           style={{
                             position: 'absolute',
                             top: '-50px',
-                            left: isMyComment ? 'auto' : '0',
-                            right: isMyComment ? '0' : 'auto',
+                            left: isMyMessage ? 'auto' : '0',
+                            right: isMyMessage ? '0' : 'auto',
                             backgroundColor: 'white',
                             border: '1px solid #ddd',
                             borderRadius: '24px',
@@ -601,9 +601,9 @@ function Comments() {
                             gap: '8px',
                             zIndex: 100
                           }}
-                          onMouseEnter={() => setShowReactionPicker(comment.id)}
+                          onMouseEnter={() => setShowReactionPicker(message.id)}
                           onMouseLeave={() => {
-                            if (showMoreReactionsPicker !== comment.id) {
+                            if (showMoreReactionsPicker !== message.id) {
                               setShowReactionPicker(null);
                             }
                           }}
@@ -611,7 +611,7 @@ function Comments() {
                           {QUICK_REACTIONS.map(emoji => (
                             <button
                               key={emoji}
-                              onClick={() => handleReactionClick(comment.id, emoji)}
+                              onClick={() => handleReactionClick(message.id, emoji)}
                               style={{
                                 backgroundColor: 'transparent',
                                 border: 'none',
@@ -630,7 +630,7 @@ function Comments() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setReplyingTo(comment);
+                              setReplyingTo(message);
                               setShowReactionPicker(null);
                               textareaRef.current?.focus();
                             }}
@@ -653,7 +653,7 @@ function Comments() {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setShowMoreReactionsPicker(comment.id);
+                              setShowMoreReactionsPicker(message.id);
                               setShowReactionPicker(null);
                             }}
                             style={{
@@ -674,19 +674,19 @@ function Comments() {
                       )}
 
                       {/* More reactions emoji picker */}
-                      {showMoreReactionsPicker === comment.id && (
+                      {showMoreReactionsPicker === message.id && (
                         <div
                           ref={moreReactionsPickerRef}
                           style={{
                             position: 'absolute',
                             bottom: '30px',
-                            left: isMyComment ? '4px' : 'auto',
-                            right: isMyComment ? 'auto' : '4px',
+                            left: isMyMessage ? '4px' : 'auto',
+                            right: isMyMessage ? 'auto' : '4px',
                             zIndex: 101
                           }}
                         >
                           <EmojiPicker
-                            onEmojiClick={(emojiObject) => handleMoreReactionEmojiClick(emojiObject, comment.id)}
+                            onEmojiClick={(emojiObject) => handleMoreReactionEmojiClick(emojiObject, message.id)}
                             width={300}
                             height={400}
                           />
@@ -703,13 +703,13 @@ function Comments() {
             </div>
           ) : (
             <div className="text-center text-muted">
-              Brak komentarzy. Bądź pierwszy!
+              Brak wiadomośćy. Bądź pierwszy!
             </div>
           )}
         </Card.Body>
       </Card>
 
-      {/* Formularz dodawania komentarza - bez scrolla */}
+      {/* Formularz dodawania wiadomośća - bez scrolla */}
       <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
         <Card className="shadow" style={{ flexShrink: 0, backgroundColor: '#f8f9fc' }}>
         <Card.Body style={{ position: 'relative', padding: '0.5rem' }}>
@@ -761,7 +761,7 @@ function Comments() {
                   ref={textareaRef}
                   required
                   placeholder="Wiadomość"
-                  value={newCommentText}
+                  value={newMessageText}
                   onChange={handleTextChange}
                   onKeyPress={handleKeyPress}
                   disabled={submitting}
@@ -1004,8 +1004,8 @@ function Comments() {
           >
             <h6 style={{ margin: 0, fontSize: 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
               Reakcje {(() => {
-                const comment = comments.find(c => c.id === showReactionsModal.commentId);
-                return comment?.reactions?.length ? `(${comment.reactions.length})` : '';
+                const currentMessage = messages.find(c => c.id === showReactionsModal.messageId);
+                return currentMessage?.reactions?.length ? `(${currentMessage.reactions.length})` : '';
               })()}
             </h6>
             <button
@@ -1031,12 +1031,12 @@ function Comments() {
           {/* Users list */}
           <div style={{ overflowY: 'auto', padding: '12px 20px' }}>
             {(() => {
-              const comment = comments.find(c => c.id === showReactionsModal.commentId);
-              if (!comment || !comment.reactions) return null;
+              const currentMessage = messages.find(c => c.id === showReactionsModal.messageId);
+              if (!currentMessage || !currentMessage.reactions) return null;
 
               // Group reactions by username
               const userReactions = {};
-              comment.reactions.forEach(reaction => {
+              currentMessage.reactions.forEach(reaction => {
                 if (!userReactions[reaction.username]) {
                   userReactions[reaction.username] = [];
                 }
@@ -1095,4 +1095,4 @@ function Comments() {
   );
 }
 
-export default Comments;
+export default Chat;

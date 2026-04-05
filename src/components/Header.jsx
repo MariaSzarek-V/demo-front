@@ -72,11 +72,11 @@ function Header() {
             </Nav.Link>
             <Nav.Link
               as={Link}
-              to="/comments"
-              className={`text-white text-nowrap ${location.pathname === '/comments' ? 'active' : ''}`}
+              to="/chat"
+              className={`text-white text-nowrap ${location.pathname === '/chat' ? 'active' : ''}`}
               style={{ padding: '0.25rem 0.75rem' }}
             >
-              Komentarze
+              Chat
             </Nav.Link>
             {user && user.userRole === 'ADMIN' && (
               <NavDropdown

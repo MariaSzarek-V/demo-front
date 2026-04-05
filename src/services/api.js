@@ -65,12 +65,12 @@ export const rankingApi = {
   getRankingHistory: () => api.get('/ranking')
 };
 
-// Comment endpoints
-export const commentApi = {
-  getAllComments: () => api.get('/comments'),
-  createComment: (data) => api.post('/comments', data),
-  addReaction: (commentId, emoji) => api.post(`/comments/${commentId}/reactions?emoji=${encodeURIComponent(emoji)}`),
-  removeReaction: (commentId, emoji) => api.delete(`/comments/${commentId}/reactions?emoji=${encodeURIComponent(emoji)}`)
+// Chat endpoints
+export const chatApi = {
+  getAllMessages: () => api.get('/chat'),
+  createMessage: (data) => api.post('/chat', data),
+  addReaction: (messageId, emoji) => api.post(`/chat/${messageId}/reactions?emoji=${encodeURIComponent(emoji)}`),
+  removeReaction: (messageId, emoji) => api.delete(`/chat/${messageId}/reactions?emoji=${encodeURIComponent(emoji)}`)
 };
 
 // Results endpoints
