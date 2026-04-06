@@ -126,26 +126,41 @@ Dashbord
 ![img_9.png](img_9.png)
 
 ![img_10.png](img_10.png)
+
 ![img_11.png](img_11.png)
+
 ![img_12.png](img_12.png)
 
 MECZE 
+
 ![img_13.png](img_13.png)
+
 ![img_14.png](img_14.png)
 
+
 PODGLAD MECZU ZAKONCZONEGO
+
 ![img_15.png](img_15.png)
+
 ![img_16.png](img_16.png)
 
+
 RANKING
+
 ![img_17.png](img_17.png)
 
+
 ZALOGOWANY VS WYBRANY USER
+
 ![img_18.png](img_18.png)
 
+
 CHAT
+
 ![img_19.png](img_19.png)
 
+
 POSTY
+
 ![img_21.png](img_21.png)
 
