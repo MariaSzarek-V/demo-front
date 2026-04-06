@@ -86,6 +86,27 @@ export const authApi = {
   logout: () => api.post('/auth/logout')
 };
 
+// Posts endpoints
+export const postApi = {
+  getAllPosts: (page = 0, size = 10) => api.get(`/posts?page=${page}&size=${size}`),
+  getPostById: (id) => api.get(`/posts/${id}`),
+  createPost: (data) => api.post('/posts', data),
+  updatePost: (id, data) => api.put(`/posts/${id}`, data),
+  deletePost: (id) => api.delete(`/posts/${id}`),
+  addReaction: (postId, emoji) => api.post(`/posts/${postId}/reactions?emoji=${encodeURIComponent(emoji)}`),
+  removeReaction: (postId, emoji) => api.delete(`/posts/${postId}/reactions?emoji=${encodeURIComponent(emoji)}`)
+};
+
+// Post Comments endpoints
+export const commentApi = {
+  getCommentsByPostId: (postId) => api.get(`/posts/${postId}/comments`),
+  createComment: (postId, data) => api.post(`/posts/${postId}/comments`, data),
+  updateComment: (commentId, data) => api.put(`/posts/comments/${commentId}`, data),
+  deleteComment: (commentId) => api.delete(`/posts/comments/${commentId}`),
+  addReaction: (commentId, emoji) => api.post(`/posts/comments/${commentId}/reactions?emoji=${encodeURIComponent(emoji)}`),
+  removeReaction: (commentId, emoji) => api.delete(`/posts/comments/${commentId}/reactions?emoji=${encodeURIComponent(emoji)}`)
+};
+
 // Dashboard - compose from multiple endpoints
 export const dashboardApi = {
   getDashboardData: async () => {

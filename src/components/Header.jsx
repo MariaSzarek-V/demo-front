@@ -78,6 +78,14 @@ function Header() {
             >
               Chat
             </Nav.Link>
+            <Nav.Link
+              as={Link}
+              to="/posts"
+              className={`text-white text-nowrap ${location.pathname === '/posts' ? 'active' : ''}`}
+              style={{ padding: '0.25rem 0.75rem' }}
+            >
+              Posty
+            </Nav.Link>
             {user && user.userRole === 'ADMIN' && (
               <NavDropdown
                 title="Admin"

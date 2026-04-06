@@ -7,6 +7,7 @@ import Dashboard from './components/Dashboard';
 import Games from './components/Games';
 import Ranking from './components/Ranking';
 import Chat from './components/Chat';
+import Posts from './components/Posts';
 import GameResults from './components/GameResults';
 import PredictionForm from './components/PredictionForm';
 import Profile from './components/Profile';
@@ -33,6 +34,7 @@ function App() {
                         <Route path="/games" element={<Games />} />
                         <Route path="/ranking" element={<Ranking />} />
                         <Route path="/chat" element={<Chat />} />
+                        <Route path="/posts" element={<Posts />} />
                         <Route path="/profile" element={<Profile />} />
                         <Route path="/results/:gameId" element={<GameResults />} />
                         <Route path="/predictions/new/:gameId" element={<PredictionForm />} />
