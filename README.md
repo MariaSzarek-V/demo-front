@@ -110,6 +110,28 @@ Edit backend URL in `src/services/api.js`:
 ```javascript
 const API_BASE_URL = 'http://localhost:8080/api';
 ```
+WEB VIEW
+
+![img_22.png](img_22.png)
+
+![img_23.png](img_23.png)
+
+MECZE
+
+![img_24.png](img_24.png)
+
+RANKING
+
+![img_25.png](img_25.png)
+
+CZAT
+
+![img_26.png](img_26.png)
+
+POSTY
+
+![img_27.png](img_27.png)
+
 
 
 

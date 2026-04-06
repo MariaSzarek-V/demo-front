@@ -320,13 +320,16 @@ function Dashboard() {
         </Col>
       </Row>
 
-      {/* Najbliższe mecze */}
-      {stats.upcomingGames && stats.upcomingGames.length > 0 && (
-        <Card className="border-start border-info border-4 shadow mb-4">
-          <Card.Body>
-            <div className="text-xs fw-bold text-info text-uppercase mb-2">
-              📅 Najbliższe mecze
-            </div>
+      {/* Content Row - Mecze */}
+      <Row className="mb-4">
+        {/* Najbliższe mecze */}
+        {stats.upcomingGames && stats.upcomingGames.length > 0 && (
+          <Col xl={6} md={6} className="mb-4">
+            <Card className="border-start border-info border-4 shadow h-100">
+              <Card.Body>
+                <div className="text-xs fw-bold text-info text-uppercase mb-2">
+                  📅 Najbliższe mecze
+                </div>
             <div className="games-list" style={{ fontSize: '0.9rem' }}>
               {stats.upcomingGames.map((game) => (
                 <div
@@ -414,18 +417,20 @@ function Dashboard() {
                   </div>
                 </div>
               ))}
-            </div>
-          </Card.Body>
-        </Card>
-      )}
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        )}
 
-      {/* Ostatnie mecze */}
-      {stats.recentGames && stats.recentGames.length > 0 && (
-        <Card className="border-start border-warning border-4 shadow mb-4">
-          <Card.Body>
-            <div className="text-xs fw-bold text-warning text-uppercase mb-2">
-              ⏱️ Ostatnie mecze
-            </div>
+        {/* Ostatnie mecze */}
+        {stats.recentGames && stats.recentGames.length > 0 && (
+          <Col xl={6} md={6} className="mb-4">
+            <Card className="border-start border-warning border-4 shadow h-100">
+              <Card.Body>
+                <div className="text-xs fw-bold text-warning text-uppercase mb-2">
+                  ⏱️ Ostatnie mecze
+                </div>
             <div className="games-list" style={{ fontSize: '0.9rem' }}>
               {stats.recentGames.map((game) => (
                 <div
@@ -526,10 +531,12 @@ function Dashboard() {
                   </div>
                 </div>
               ))}
-            </div>
-          </Card.Body>
-        </Card>
-      )}
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        )}
+      </Row>
 
       {/* Wykresy */}
       <Row>
