@@ -520,17 +520,21 @@ function Posts() {
 
                 {/* Reactions display */}
                 {post.reactions.length > 0 && (
-                  <div className="ms-auto d-flex gap-1">
-                    {groupReactions(post.reactions).map(({ emoji, count, usernames }) => (
-                      <button
-                        key={emoji}
-                        className="btn btn-sm btn-light"
-                        onClick={() => setShowReactionsModal({ emoji, usernames })}
-                        style={{ fontSize: '1rem' }}
-                      >
-                        {emoji} {count}
-                      </button>
-                    ))}
+                  <div className="ms-auto">
+                    <button
+                      className="btn btn-sm btn-light d-flex align-items-center gap-1"
+                      onClick={() => setShowReactionsModal({ reactions: post.reactions })}
+                      style={{ fontSize: '1rem' }}
+                    >
+                      {/* All emoji together */}
+                      {groupReactions(post.reactions).map(({ emoji }) => (
+                        <span key={emoji}>{emoji}</span>
+                      ))}
+                      {/* Total count */}
+                      <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: '600' }}>
+                        {post.reactions.length}
+                      </span>
+                    </button>
                   </div>
                 )}
               </div>
@@ -855,18 +859,20 @@ function Posts() {
 
                                     {/* Display Grouped Reactions */}
                                     {comment.reactions && comment.reactions.length > 0 && (
-                                      <div className="d-flex gap-1">
-                                        {groupReactions(comment.reactions).map(({ emoji, count, usernames }) => (
-                                          <button
-                                            key={emoji}
-                                            className="btn btn-sm btn-light"
-                                            onClick={() => setShowCommentReactionsModal({ emoji, usernames })}
-                                            style={{ fontSize: '0.85rem' }}
-                                          >
-                                            {emoji} {count}
-                                          </button>
+                                      <button
+                                        className="btn btn-sm btn-light d-flex align-items-center gap-1"
+                                        onClick={() => setShowCommentReactionsModal({ reactions: comment.reactions })}
+                                        style={{ fontSize: '0.85rem' }}
+                                      >
+                                        {/* All emoji together */}
+                                        {groupReactions(comment.reactions).map(({ emoji }) => (
+                                          <span key={emoji}>{emoji}</span>
                                         ))}
-                                      </div>
+                                        {/* Total count */}
+                                        <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: '600' }}>
+                                          {comment.reactions.length}
+                                        </span>
+                                      </button>
                                     )}
                                   </div>
                                 </div>
@@ -966,13 +972,24 @@ function Posts() {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             zIndex: 1050,
-            minWidth: '200px'
+            minWidth: '250px',
+            maxHeight: '400px',
+            overflowY: 'auto'
           }}
         >
-          <div className="mb-2 fw-bold">{showReactionsModal.emoji}</div>
+          <div className="mb-3 fw-bold">Reakcje ({showReactionsModal.reactions?.length || 0})</div>
           <div>
-            {showReactionsModal.usernames.map((username, idx) => (
-              <div key={idx} className="py-1">{username}</div>
+            {groupReactions(showReactionsModal.reactions || []).map(({ emoji, count, usernames }) => (
+              <div key={emoji} className="mb-3">
+                <div className="mb-1 fw-bold" style={{ fontSize: '1.2rem' }}>
+                  {emoji} {count}
+                </div>
+                {usernames.map((username, idx) => (
+                  <div key={idx} className="py-1 ps-3 text-muted" style={{ fontSize: '0.9rem' }}>
+                    {username}
+                  </div>
+                ))}
+              </div>
             ))}
           </div>
         </div>
@@ -988,13 +1005,24 @@ function Posts() {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             zIndex: 1050,
-            minWidth: '200px'
+            minWidth: '250px',
+            maxHeight: '400px',
+            overflowY: 'auto'
           }}
         >
-          <div className="mb-2 fw-bold">{showCommentReactionsModal.emoji}</div>
+          <div className="mb-3 fw-bold">Reakcje ({showCommentReactionsModal.reactions?.length || 0})</div>
           <div>
-            {showCommentReactionsModal.usernames.map((username, idx) => (
-              <div key={idx} className="py-1">{username}</div>
+            {groupReactions(showCommentReactionsModal.reactions || []).map(({ emoji, count, usernames }) => (
+              <div key={emoji} className="mb-3">
+                <div className="mb-1 fw-bold" style={{ fontSize: '1.2rem' }}>
+                  {emoji} {count}
+                </div>
+                {usernames.map((username, idx) => (
+                  <div key={idx} className="py-1 ps-3 text-muted" style={{ fontSize: '0.9rem' }}>
+                    {username}
+                  </div>
+                ))}
+              </div>
             ))}
           </div>
         </div>

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Container, Row, Col, Card, Button, Badge } from 'react-bootstrap';
+import { Link, useNavigate } from 'react-router-dom';
 import RankingChart from './RankingChart';
 import NestedDonutChart from './NestedDonutChart';
 import { dashboardApi, resultsApi } from '../services/api';
 
 function Dashboard() {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -215,7 +216,7 @@ function Dashboard() {
           <Card className="border-start border-primary border-4 shadow h-100">
             <Card.Body className="py-3">
               <div className="text-xs fw-bold text-primary text-uppercase mb-3">
-                Twoje wyniki
+                Twoje wyniki <span className="text-danger">- TO DO !!!!</span>
               </div>
 
               {/* Najczęściej typowany wynik */}
@@ -235,33 +236,21 @@ function Dashboard() {
 
               {/* Statystyki punktowe */}
               <div className="mb-2">
-                <div className="text-md fw-bold text-secondary mb-1">
-                  Efektywność typowania
+                <div className="text-md fw-bold text-secondary mb-2">
+                  Efekty typowania:
                 </div>
-                <div className="mb-1">
-                  <span className="text-success">
-                    🏆 {stats.exactMatches}
-                  </span>
-                  <strong className="text-secondary ms-2">x 3 pkt</strong>
+                <div className="fw-bold" style={{ fontSize: '0.875rem', color: '#28a745' }}>
+                  {stats.exactMatches} x 3 pkt
                 </div>
-                <div className="mb-1">
-                  <span className="text-warning">
-                    ⚡ {stats.partialMatches}
-                  </span>
-                  <small className="text-secondary ms-2">x 1 pkt</small>
+                <div className="text-warning fw-bold" style={{ fontSize: '0.875rem' }}>
+                  {stats.partialMatches} x 1 pkt
                 </div>
-                <div className="mb-1">
-                  <span className="text-danger">
-                    ❌ {stats.noMatches}
-                  </span>
-                  <small className="text-secondary ms-2">x 0 pkt</small>
+                <div className="text-danger fw-bold" style={{ fontSize: '0.875rem' }}>
+                  {stats.noMatches} x 0 pkt
                 </div>
                 {stats.almostPerfect > 0 && (
-                  <div className="mb-1">
-                    <span className="text-info">
-                      😫 {stats.almostPerfect}
-                    </span>
-                    <small className="text-secondary ms-2">x prawie!</small>
+                  <div className="text-info fw-bold mt-2" style={{ fontSize: '0.875rem' }}>
+                    😫 {stats.almostPerfect} x prawie!
                   </div>
                 )}
               </div>
@@ -322,11 +311,6 @@ function Dashboard() {
                       );
                     })}
                   </div>
-                  <div className="mt-3 text-center">
-                    <Button as={Link} to="/ranking" variant="outline-warning" size="sm">
-                      <i className="fas fa-list"></i> Pełny ranking
-                    </Button>
-                  </div>
                 </>
               ) : (
                 <p className="text-muted mb-0">Brak danych rankingu</p>
@@ -347,39 +331,87 @@ function Dashboard() {
               {stats.upcomingGames.map((game) => (
                 <div
                   key={game.id}
-                  className="p-2 rounded mb-2"
-                  style={{ borderBottom: '1px solid #e3e6f0' }}
+                  className="game-item"
+                  style={{
+                    padding: '8px',
+                    borderRadius: '4px',
+                    marginBottom: '8px',
+                    borderBottom: '1px solid #e3e6f0'
+                  }}
                 >
-                  <div className="text-muted" style={{ fontSize: '0.85rem' }}>
-                    {formatDate(game.gameDate)}
+                  {/* Data */}
+                  <div className="mb-2">
+                    <span className="game-date text-muted d-block mb-1" style={{ fontSize: '0.85rem' }}>
+                      {formatDate(game.gameDate)}
+                    </span>
+
+                    {/* Sprawdź czy nazwy są za długie */}
+                    {((game.homeTeam?.length || 0) + (game.awayTeam?.length || 0)) > 24 ? (
+                      /* Układ pionowy dla długich nazw */
+                      <div style={{ textAlign: 'center', width: '100%', padding: '0 10px' }}>
+                        <div style={{ marginBottom: '4px', maxWidth: '250px', margin: '0 auto 4px auto', wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.5' }}>
+                          <span className="fw-bold">{game.homeTeam} </span>
+                          <span className={`fi fi-${game.homeCountryCode?.toLowerCase()}`}></span>
+                        </div>
+                        <strong className="game-score text-primary d-block" style={{ fontSize: '1.1rem', margin: '4px 0' }}>
+                          -:-
+                        </strong>
+                        <div style={{ marginTop: '4px', maxWidth: '250px', margin: '4px auto 0 auto', wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.5' }}>
+                          <span className={`fi fi-${game.awayCountryCode?.toLowerCase()}`}></span>
+                          <span className="fw-bold"> {game.awayTeam}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Układ grid - 5 kolumn */
+                      <div
+                        className="d-grid align-items-center"
+                        style={{
+                          gridTemplateColumns: '1fr auto auto auto 1fr',
+                          gap: '8px'
+                        }}
+                      >
+                        <span className="fw-bold text-end">{game.homeTeam}</span>
+                        <span className={`fi fi-${game.homeCountryCode?.toLowerCase()}`}></span>
+                        <strong className="game-score text-primary text-center">-:-</strong>
+                        <span className={`fi fi-${game.awayCountryCode?.toLowerCase()}`}></span>
+                        <span className="fw-bold text-start">{game.awayTeam}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="fw-bold">
-                    <Link
-                      to={`/results/${game.id}`}
-                      className="text-dark text-decoration-none"
-                    >
-                      <span className={`fi fi-${game.homeCountryCode?.toLowerCase()} me-2`}></span>
-                      {game.homeTeam} : {game.awayTeam}
-                      <span className={`fi fi-${game.awayCountryCode?.toLowerCase()} ms-2`}></span>
-                    </Link>
-                  </div>
-                  {!game.hasPrediction ? (
-                    <div className="mt-2">
+
+                  {/* Typ użytkownika */}
+                  <div className="d-flex align-items-center justify-content-center flex-wrap" style={{ gap: '8px' }}>
+                    {game.hasPrediction ? (
+                      <span
+                        className="btn btn-sm"
+                        style={{
+                          backgroundColor: 'rgba(78, 115, 223, 0.15)',
+                          color: '#4e73df',
+                          border: '1px solid rgba(78, 115, 223, 0.3)',
+                          cursor: 'default',
+                          width: '60px',
+                          padding: '4px 8px',
+                          fontFamily: 'monospace',
+                          fontSize: '0.95rem',
+                          textAlign: 'center',
+                          fontWeight: '600'
+                        }}
+                      >
+                        {game.predictedHomeScore}:{game.predictedAwayScore}
+                      </span>
+                    ) : (
                       <Button
                         as={Link}
                         to={`/predictions/new/${game.id}`}
-                        variant="primary"
+                        variant="outline-primary"
                         size="sm"
+                        style={{ minWidth: '38px', padding: '4px 8px' }}
+                        title="Typuj"
                       >
-                        <i className="fas fa-futbol"></i> Typuj wynik
+                        <i className="fas fa-plus"></i>
                       </Button>
-                    </div>
-                  ) : (
-                    <div className="mt-2 text-success">
-                      <i className="fas fa-check-circle"></i> Twój typ:{' '}
-                      {game.predictedHomeScore}:{game.predictedAwayScore}
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -398,46 +430,99 @@ function Dashboard() {
               {stats.recentGames.map((game) => (
                 <div
                   key={game.id}
-                  className="p-2 rounded mb-2"
-                  style={{ borderBottom: '1px solid #e3e6f0' }}
+                  className="game-item"
+                  style={{
+                    padding: '8px',
+                    borderRadius: '4px',
+                    marginBottom: '8px',
+                    borderBottom: '1px solid #e3e6f0',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => navigate(`/results/${game.id}`)}
                 >
-                  <div className="text-muted" style={{ fontSize: '0.85rem' }}>
-                    {formatDate(game.gameDate)}
-                  </div>
-                  <div className="fw-bold">
-                    <Link
-                      to={`/results/${game.id}`}
-                      className="text-dark text-decoration-none"
-                    >
-                      <span className={`fi fi-${game.homeCountryCode?.toLowerCase()} me-2`}></span>
-                      {game.homeTeam} {game.homeScore}:{game.awayScore}{' '}
-                      {game.awayTeam}
-                      <span className={`fi fi-${game.awayCountryCode?.toLowerCase()} ms-2`}></span>
-                      {game.hasPrediction && game.points !== null && game.points !== undefined && (
-                        <span
-                          className={
-                            game.points === 3
-                              ? 'text-success'
-                              : game.points === 1
-                              ? 'text-warning'
-                              : 'text-danger'
-                          }
+                  {/* Data */}
+                  <div className="mb-2">
+                    <span className="game-date text-muted d-block mb-1" style={{ fontSize: '0.85rem' }}>
+                      {formatDate(game.gameDate)}
+                    </span>
+
+                    {/* Sprawdź czy nazwy są za długie */}
+                    {((game.homeTeam?.length || 0) + (game.awayTeam?.length || 0)) > 24 ? (
+                      /* Układ pionowy dla długich nazw */
+                      <div style={{ textAlign: 'center', width: '100%', padding: '0 10px' }}>
+                        <div style={{ marginBottom: '4px', maxWidth: '250px', margin: '0 auto 4px auto', wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.5' }}>
+                          <span className="fw-bold">{game.homeTeam} </span>
+                          <span className={`fi fi-${game.homeCountryCode?.toLowerCase()}`}></span>
+                        </div>
+                        <Link
+                          to={`/results/${game.id}`}
+                          className="game-score text-primary text-decoration-none d-block"
+                          style={{ fontSize: '1.1rem', margin: '4px 0', fontWeight: 'bold' }}
                         >
-                          {' '}
-                          +{game.points} pkt
+                          {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                        </Link>
+                        <div style={{ marginTop: '4px', maxWidth: '250px', margin: '4px auto 0 auto', wordWrap: 'break-word', overflowWrap: 'break-word', lineHeight: '1.5' }}>
+                          <span className={`fi fi-${game.awayCountryCode?.toLowerCase()}`}></span>
+                          <span className="fw-bold"> {game.awayTeam}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Układ grid - 5 kolumn */
+                      <div
+                        className="d-grid align-items-center"
+                        style={{
+                          gridTemplateColumns: '1fr auto auto auto 1fr',
+                          gap: '8px'
+                        }}
+                      >
+                        <span className="fw-bold text-end">{game.homeTeam}</span>
+                        <span className={`fi fi-${game.homeCountryCode?.toLowerCase()}`}></span>
+                        <Link
+                          to={`/results/${game.id}`}
+                          className="game-score text-primary text-center text-decoration-none"
+                          style={{ fontWeight: 'bold' }}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {game.homeScore ?? '-'}:{game.awayScore ?? '-'}
+                        </Link>
+                        <span className={`fi fi-${game.awayCountryCode?.toLowerCase()}`}></span>
+                        <span className="fw-bold text-start">{game.awayTeam}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Typ użytkownika i punkty */}
+                  <div className="d-flex align-items-center justify-content-center flex-wrap" style={{ gap: '8px' }}>
+                    {game.hasPrediction ? (
+                      <>
+                        <span
+                          className="btn btn-sm"
+                          style={{
+                            backgroundColor: 'rgba(78, 115, 223, 0.15)',
+                            color: '#4e73df',
+                            border: '1px solid rgba(78, 115, 223, 0.3)',
+                            cursor: 'default',
+                            width: '60px',
+                            padding: '4px 8px',
+                            fontFamily: 'monospace',
+                            fontSize: '0.95rem',
+                            textAlign: 'center',
+                            fontWeight: '600'
+                          }}
+                        >
+                          {game.predictedHomeScore}:{game.predictedAwayScore}
                         </span>
-                      )}
-                      {game.hasPrediction && (
-                        <span className="text-muted ms-2">
-                          ({game.predictedHomeScore}:{game.predictedAwayScore})
-                        </span>
-                      )}
-                      {!game.hasPrediction && (
-                        <small className="text-muted ms-2">
-                          <i className="fas fa-times-circle"></i> Brak typu
-                        </small>
-                      )}
-                    </Link>
+                        {game.points !== null && game.points !== undefined && (
+                          <Badge bg={game.points === 3 ? 'success' : game.points === 1 ? 'warning' : 'secondary'}>
+                            {game.points} pkt
+                          </Badge>
+                        )}
+                      </>
+                    ) : (
+                      <small className="text-muted">
+                        <i className="fas fa-times-circle"></i> Brak typu
+                      </small>
+                    )}
                   </div>
                 </div>
               ))}
@@ -451,8 +536,8 @@ function Dashboard() {
         <Col xs={12}>
           <Card className="shadow mb-4">
             <Card.Header className="py-3">
-              <h6 className="m-0 fw-bold text-primary">
-                Historia pozycji w rankingu
+              <h6 className="m-0 fw-bold text-danger">
+                HARDCODED !!! TO DO
               </h6>
             </Card.Header>
             <Card.Body>
