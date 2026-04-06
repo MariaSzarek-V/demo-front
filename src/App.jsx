@@ -6,6 +6,7 @@ import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import Games from './components/Games';
 import Ranking from './components/Ranking';
+import Compare from './components/Compare';
 import Chat from './components/Chat';
 import Posts from './components/Posts';
 import GameResults from './components/GameResults';
@@ -33,6 +34,7 @@ function App() {
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/games" element={<Games />} />
                         <Route path="/ranking" element={<Ranking />} />
+                        <Route path="/compare/:userId" element={<Compare />} />
                         <Route path="/chat" element={<Chat />} />
                         <Route path="/posts" element={<Posts />} />
                         <Route path="/profile" element={<Profile />} />

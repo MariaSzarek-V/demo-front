@@ -65,6 +65,11 @@ export const rankingApi = {
   getRankingHistory: () => api.get('/ranking')
 };
 
+// Compare endpoints
+export const compareApi = {
+  compareWithUser: (userId) => api.get(`/compare/${userId}`)
+};
+
 // Chat endpoints
 export const chatApi = {
   getAllMessages: () => api.get('/chat'),

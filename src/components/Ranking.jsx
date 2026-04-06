@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Container, Card } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
 import { rankingApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
 function Ranking() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [ranking, setRanking] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -17,6 +19,7 @@ function Ranking() {
     try {
       setLoading(true);
       const response = await rankingApi.getRankingHistory();
+      console.log('Ranking data:', response.data);
       setRanking(response.data);
       setLoading(false);
     } catch (err) {
@@ -92,10 +95,32 @@ function Ranking() {
                 <div
                   key={row.position || index}
                   className="d-flex align-items-center p-2 rounded"
+                  onClick={() => {
+                    console.log('Clicked row:', row);
+                    console.log('isCurrentUser:', isCurrentUser);
+                    console.log('row.userId:', row.userId);
+                    if (!isCurrentUser && row.userId) {
+                      navigate(`/compare/${row.userId}`);
+                    }
+                  }}
                   style={{
                     borderBottom: index < ranking.length - 1 ? '1px solid #e3e6f0' : 'none',
                     backgroundColor: isCurrentUser ? 'rgba(8, 145, 178, 0.08)' : 'transparent',
-                    fontWeight: isCurrentUser ? 'bold' : 'normal'
+                    fontWeight: isCurrentUser ? 'bold' : 'normal',
+                    cursor: !isCurrentUser && row.userId ? 'pointer' : 'default',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={(e) => {
+                    if (!isCurrentUser && row.userId) {
+                      e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.05)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    if (!isCurrentUser) {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                    } else {
+                      e.currentTarget.style.backgroundColor = 'rgba(8, 145, 178, 0.08)';
+                    }
                   }}
                 >
                   {/* Pozycja */}
