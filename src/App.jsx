@@ -5,6 +5,7 @@ import Login from './components/Login';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import Games from './components/Games';
+import AdminGames from './components/AdminGames';
 import Ranking from './components/Ranking';
 import Compare from './components/Compare';
 import Chat from './components/Chat';
@@ -33,6 +34,7 @@ function App() {
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard" element={<Dashboard />} />
                         <Route path="/games" element={<Games />} />
+                        <Route path="/admin/games" element={<AdminGames />} />
                         <Route path="/ranking" element={<Ranking />} />
                         <Route path="/compare/:userId" element={<Compare />} />
                         <Route path="/chat" element={<Chat />} />

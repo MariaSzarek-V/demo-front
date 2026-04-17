@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Badge } from 'react-bootstrap';
+import { Row, Col, Card, Button, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import RankingChart from './RankingChart';
 import NestedDonutChart from './NestedDonutChart';
@@ -185,30 +185,30 @@ function Dashboard() {
 
   if (loading) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <div className="content-container">
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Ładowanie...</span>
           </div>
         </div>
-      </Container>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <div className="content-container">
         <div className="alert alert-danger" role="alert">
           {error}
         </div>
-      </Container>
+      </div>
     );
   }
 
   if (!stats) return null;
 
   return (
-    <Container fluid className="px-2 px-md-4 px-lg-5" style={{ height: 'calc(100vh - 150px)', overflowY: 'auto', paddingBottom: '2rem' }}>
+    <div className="content-container" style={{ height: 'calc(100vh - 150px)', overflowY: 'auto', paddingBottom: '2rem' }}>
       {/* Content Row - Statystyki */}
       <Row className="mt-4">
         {/* Twoje wyniki */}
@@ -575,7 +575,7 @@ function Dashboard() {
           </Card>
         </Col>
       </Row>
-    </Container>
+    </div>
   );
 }
 

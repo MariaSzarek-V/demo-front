@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Container, Card, Button, Badge } from 'react-bootstrap';
+import { Card, Button, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { gameApi, predictionApi } from '../services/api';
+import { useAuth } from '../contexts/AuthContext';
 
 function Games() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -232,29 +234,29 @@ function Games() {
 
   if (loading) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <div className="content-container">
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Ładowanie...</span>
           </div>
         </div>
-      </Container>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <div className="content-container">
         <div className="alert alert-danger" role="alert">
           {error}
         </div>
-      </Container>
+      </div>
     );
   }
 
   return (
-    <Container fluid className="px-2 px-md-4 px-lg-5" style={{ height: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      {/* Filter buttons */}
+    <div className="content-container content-container-narrow" style={{ height: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      {/* Filter buttons and admin button */}
       <div className="mb-2 d-flex gap-2 justify-content-center">
         <Button
           variant={filter === 'ALL' ? 'primary' : 'outline-primary'}
@@ -277,6 +279,16 @@ function Games() {
         >
           Zakończone
         </Button>
+        {user?.userRole === 'ADMIN' && (
+          <Button
+            variant="warning"
+            size="sm"
+            onClick={() => navigate('/admin/games')}
+            title="Zarządzaj meczami"
+          >
+            Admin
+          </Button>
+        )}
       </div>
 
       <Card className="border-start border-primary border-4 shadow" style={{ flex: '1', minHeight: 0, marginBottom: '0.5rem' }}>
@@ -551,7 +563,7 @@ function Games() {
           )}
         </Card.Body>
       </Card>
-    </Container>
+    </div>
   );
 }
 

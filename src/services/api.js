@@ -112,6 +112,20 @@ export const commentApi = {
   removeReaction: (commentId, emoji) => api.delete(`/posts/comments/${commentId}/reactions?emoji=${encodeURIComponent(emoji)}`)
 };
 
+// Admin endpoints
+export const adminApi = {
+  getAllGames: () => api.get('/admin/games'),
+  getGameById: (id) => api.get(`/admin/games/${id}`),
+  createGame: (data) => api.post('/admin/games', data),
+  updateGame: (id, data) => api.put(`/admin/games/${id}`, data),
+  deleteGame: (id) => api.delete(`/admin/games/${id}`)
+};
+
+// Country endpoints
+export const countryApi = {
+  getAllCountries: () => api.get('/countries')
+};
+
 // Dashboard - compose from multiple endpoints
 export const dashboardApi = {
   getDashboardData: async () => {

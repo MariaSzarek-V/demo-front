@@ -160,7 +160,7 @@ function GameResults() {
 
   if (loading) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <Container fluid className="px-2 px-md-4 px-lg-5 content-container-narrow">
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Ładowanie...</span>
@@ -172,7 +172,7 @@ function GameResults() {
 
   if (error) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <Container fluid className="px-2 px-md-4 px-lg-5 content-container-narrow">
         <div className="alert alert-danger" role="alert">
           {error}
         </div>
@@ -183,7 +183,7 @@ function GameResults() {
   const gameInfo = results.length > 0 ? results[0] : null;
 
   return (
-    <Container fluid className="px-2 px-md-4 px-lg-5">
+    <Container fluid className="px-2 px-md-4 px-lg-5 content-container-narrow">
       {/* Informacja o meczu */}
       {gameInfo && (
         <Row className="mb-2">

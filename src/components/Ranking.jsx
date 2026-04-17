@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Card } from 'react-bootstrap';
+import { Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { rankingApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,23 +31,23 @@ function Ranking() {
 
   if (loading) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <div className="content-container">
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Ładowanie...</span>
           </div>
         </div>
-      </Container>
+      </div>
     );
   }
 
   if (error) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <div className="content-container">
         <div className="alert alert-danger" role="alert">
           {error}
         </div>
-      </Container>
+      </div>
     );
   }
 
@@ -84,7 +84,7 @@ function Ranking() {
   };
 
   return (
-    <Container fluid className="px-2 px-md-4 px-lg-5">
+    <div className="content-container content-container-narrow">
       <Card className="border-start border-warning border-4 shadow mb-4">
         <Card.Body>
           {ranking && ranking.length > 0 ? (
@@ -226,7 +226,7 @@ function Ranking() {
           )}
         </Card.Body>
       </Card>
-    </Container>
+    </div>
   );
 }
 

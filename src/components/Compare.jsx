@@ -29,7 +29,7 @@ function Compare() {
 
   if (loading) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <Container fluid className="px-2 px-md-4 px-lg-5 content-container-narrow">
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Ładowanie...</span>
@@ -41,7 +41,7 @@ function Compare() {
 
   if (error || !compareData) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <Container fluid className="px-2 px-md-4 px-lg-5 content-container-narrow">
         <div className="alert alert-danger" role="alert">
           {error || 'Brak danych'}
         </div>
@@ -146,7 +146,7 @@ function Compare() {
   };
 
   return (
-    <Container fluid className="px-2 px-md-4 px-lg-5">
+    <Container fluid className="px-2 px-md-4 px-lg-5 content-container-narrow">
       {/* Comparison Stats Header */}
       <Card className="shadow mb-3">
         <Card.Body className="py-3">

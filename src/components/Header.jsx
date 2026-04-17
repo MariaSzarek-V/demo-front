@@ -86,21 +86,6 @@ function Header() {
             >
               Posty
             </Nav.Link>
-            {user && user.userRole === 'ADMIN' && (
-              <NavDropdown
-                title="Admin"
-                id="admin-dropdown"
-                className="text-white text-nowrap"
-                style={{ padding: '0.25rem 0.75rem' }}
-              >
-                <NavDropdown.Item as={Link} to="/admin/games">
-                  Zarządzanie meczami
-                </NavDropdown.Item>
-                <NavDropdown.Item as={Link} to="/admin/games/new">
-                  Dodaj mecz
-                </NavDropdown.Item>
-              </NavDropdown>
-            )}
           </div>
         </div>
       </Container>

@@ -135,7 +135,7 @@ POSTY
 
 
 
-PHONE VIEW 
+PHONE VIEW npm 
 
 Dashbord
 

@@ -359,7 +359,7 @@ function Chat() {
   }
 
   return (
-    <Container fluid className="px-1 px-md-2 px-lg-3" style={{ height: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <Container fluid className="px-1 px-md-2 px-lg-3 content-container-narrow" style={{ height: 'calc(100vh - 150px)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       {/* Lista wiadomośćy z ograniczoną wysokością i scrollem - TYLKO TEN SCROLL */}
       <Card className="shadow mb-2" style={{ flex: '1', minHeight: 0, backgroundColor: '#f8f9fc' }}>
         <Card.Body style={{ maxHeight: '100%', overflowY: 'auto', padding: '0.3rem' }}>

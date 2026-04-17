@@ -341,7 +341,7 @@ function Posts() {
   }
 
   return (
-    <Container fluid className="py-4" style={{ maxWidth: '800px' }}>
+    <Container fluid className="py-4 content-container-narrow">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>Posty</h2>
         <Button variant="primary" onClick={() => setShowNewPostModal(true)}>
@@ -358,7 +358,7 @@ function Posts() {
 
       <div className="posts-list">
         {posts.map(post => (
-          <Card key={post.id} className="mb-3 shadow-sm">
+          <Card key={post.id} className="mb-3 shadow" style={{ backgroundColor: '#f8f9fc' }}>
             <Card.Body>
               <div className="d-flex align-items-center mb-2">
                 <div className="me-2">
@@ -528,7 +528,7 @@ function Posts() {
                     >
                       {/* All emoji together */}
                       {groupReactions(post.reactions).map(({ emoji }) => (
-                        <span key={emoji}>{emoji}</span>
+                        <span key={emoji} style={{ fontSize: '1.4rem' }}>{emoji}</span>
                       ))}
                       {/* Total count */}
                       <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: '600' }}>
@@ -866,7 +866,7 @@ function Posts() {
                                       >
                                         {/* All emoji together */}
                                         {groupReactions(comment.reactions).map(({ emoji }) => (
-                                          <span key={emoji}>{emoji}</span>
+                                          <span key={emoji} style={{ fontSize: '1.4rem' }}>{emoji}</span>
                                         ))}
                                         {/* Total count */}
                                         <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: '600' }}>
@@ -966,31 +966,112 @@ function Posts() {
       {showReactionsModal && (
         <div
           ref={reactionsModalRef}
-          className="position-fixed bg-white border rounded shadow-lg p-3"
           style={{
-            top: '50%',
+            position: 'fixed',
+            bottom: 0,
             left: '50%',
-            transform: 'translate(-50%, -50%)',
+            transform: 'translateX(-50%)',
+            width: '90%',
+            maxWidth: '500px',
+            backgroundColor: 'white',
+            borderRadius: '16px 16px 0 0',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.2)',
             zIndex: 1050,
-            minWidth: '250px',
-            maxHeight: '400px',
-            overflowY: 'auto'
+            maxHeight: '60vh',
+            display: 'flex',
+            flexDirection: 'column'
           }}
         >
-          <div className="mb-3 fw-bold">Reakcje ({showReactionsModal.reactions?.length || 0})</div>
-          <div>
-            {groupReactions(showReactionsModal.reactions || []).map(({ emoji, count, usernames }) => (
-              <div key={emoji} className="mb-3">
-                <div className="mb-1 fw-bold" style={{ fontSize: '1.2rem' }}>
-                  {emoji} {count}
-                </div>
-                {usernames.map((username, idx) => (
-                  <div key={idx} className="py-1 ps-3 text-muted" style={{ fontSize: '0.9rem' }}>
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '16px 20px',
+              borderBottom: '1px solid #e3e6f0'
+            }}
+          >
+            <h6 style={{ margin: 0, fontSize: 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
+              Reakcje ({showReactionsModal.reactions?.length || 0})
+            </h6>
+            <button
+              onClick={() => setShowReactionsModal(null)}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                color: '#858796',
+                padding: '0',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Users list */}
+          <div style={{ overflowY: 'auto', padding: '12px 20px' }}>
+            {(() => {
+              // Group reactions by username
+              const userReactions = {};
+              (showReactionsModal.reactions || []).forEach(reaction => {
+                if (!userReactions[reaction.username]) {
+                  userReactions[reaction.username] = [];
+                }
+                userReactions[reaction.username].push(reaction.emoji);
+              });
+
+              // Show users with all their emojis in one line
+              return Object.entries(userReactions).map(([username, emojis], index) => (
+                <div
+                  key={username}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 0',
+                    borderBottom: index < Object.keys(userReactions).length - 1 ? '1px solid #f0f0f0' : 'none'
+                  }}
+                >
+                  {/* Avatar placeholder */}
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      backgroundColor: '#0891b2',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      marginRight: '12px',
+                      flexShrink: 0
+                    }}
+                  >
+                    {username.charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Username */}
+                  <div style={{ flex: 1, fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
                     {username}
                   </div>
-                ))}
-              </div>
-            ))}
+
+                  {/* All emojis for this user */}
+                  <div style={{ display: 'flex', gap: '6px', fontSize: '1.5rem', marginLeft: '8px' }}>
+                    {emojis.map((emoji, emojiIndex) => (
+                      <span key={emojiIndex}>{emoji}</span>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         </div>
       )}
@@ -999,31 +1080,112 @@ function Posts() {
       {showCommentReactionsModal && (
         <div
           ref={commentReactionsModalRef}
-          className="position-fixed bg-white border rounded shadow-lg p-3"
           style={{
-            top: '50%',
+            position: 'fixed',
+            bottom: 0,
             left: '50%',
-            transform: 'translate(-50%, -50%)',
+            transform: 'translateX(-50%)',
+            width: '90%',
+            maxWidth: '500px',
+            backgroundColor: 'white',
+            borderRadius: '16px 16px 0 0',
+            boxShadow: '0 -4px 20px rgba(0,0,0,0.2)',
             zIndex: 1050,
-            minWidth: '250px',
-            maxHeight: '400px',
-            overflowY: 'auto'
+            maxHeight: '60vh',
+            display: 'flex',
+            flexDirection: 'column'
           }}
         >
-          <div className="mb-3 fw-bold">Reakcje ({showCommentReactionsModal.reactions?.length || 0})</div>
-          <div>
-            {groupReactions(showCommentReactionsModal.reactions || []).map(({ emoji, count, usernames }) => (
-              <div key={emoji} className="mb-3">
-                <div className="mb-1 fw-bold" style={{ fontSize: '1.2rem' }}>
-                  {emoji} {count}
-                </div>
-                {usernames.map((username, idx) => (
-                  <div key={idx} className="py-1 ps-3 text-muted" style={{ fontSize: '0.9rem' }}>
+          {/* Header */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '16px 20px',
+              borderBottom: '1px solid #e3e6f0'
+            }}
+          >
+            <h6 style={{ margin: 0, fontSize: 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
+              Reakcje ({showCommentReactionsModal.reactions?.length || 0})
+            </h6>
+            <button
+              onClick={() => setShowCommentReactionsModal(null)}
+              style={{
+                backgroundColor: 'transparent',
+                border: 'none',
+                fontSize: '1.5rem',
+                cursor: 'pointer',
+                color: '#858796',
+                padding: '0',
+                width: '30px',
+                height: '30px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Users list */}
+          <div style={{ overflowY: 'auto', padding: '12px 20px' }}>
+            {(() => {
+              // Group reactions by username
+              const userReactions = {};
+              (showCommentReactionsModal.reactions || []).forEach(reaction => {
+                if (!userReactions[reaction.username]) {
+                  userReactions[reaction.username] = [];
+                }
+                userReactions[reaction.username].push(reaction.emoji);
+              });
+
+              // Show users with all their emojis in one line
+              return Object.entries(userReactions).map(([username, emojis], index) => (
+                <div
+                  key={username}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: '12px 0',
+                    borderBottom: index < Object.keys(userReactions).length - 1 ? '1px solid #f0f0f0' : 'none'
+                  }}
+                >
+                  {/* Avatar placeholder */}
+                  <div
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      borderRadius: '50%',
+                      backgroundColor: '#0891b2',
+                      color: 'white',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '1rem',
+                      fontWeight: 'bold',
+                      marginRight: '12px',
+                      flexShrink: 0
+                    }}
+                  >
+                    {username.charAt(0).toUpperCase()}
+                  </div>
+
+                  {/* Username */}
+                  <div style={{ flex: 1, fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
                     {username}
                   </div>
-                ))}
-              </div>
-            ))}
+
+                  {/* All emojis for this user */}
+                  <div style={{ display: 'flex', gap: '6px', fontSize: '1.5rem', marginLeft: '8px' }}>
+                    {emojis.map((emoji, emojiIndex) => (
+                      <span key={emojiIndex}>{emoji}</span>
+                    ))}
+                  </div>
+                </div>
+              ));
+            })()}
           </div>
         </div>
       )}
