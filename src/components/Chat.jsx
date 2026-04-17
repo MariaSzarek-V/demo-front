@@ -3,9 +3,11 @@ import { Container, Card, Form, Button } from 'react-bootstrap';
 import EmojiPicker from 'emoji-picker-react';
 import { chatApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useLeague } from '../contexts/LeagueContext';
 
 function Chat() {
   const { user } = useAuth();
+  const { selectedLeague } = useLeague();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -55,8 +57,10 @@ function Chat() {
   };
 
   useEffect(() => {
-    loadMessages();
-  }, []);
+    if (selectedLeague) {
+      loadMessages();
+    }
+  }, [selectedLeague]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -106,7 +110,7 @@ function Chat() {
   const loadMessages = async () => {
     try {
       setLoading(true);
-      const response = await chatApi.getAllMessages();
+      const response = await chatApi.getAllMessages(selectedLeague?.id);
       // Odwróć kolejność - najstarsze na górze, najnowsze na dole
       const sortedMessages = response.data.reverse();
       setMessages(sortedMessages);
@@ -252,7 +256,8 @@ function Chat() {
       setSubmitting(true);
       const messageData = {
         text: newMessageText,
-        parentMessageId: replyingTo?.id || null
+        parentMessageId: replyingTo?.id || null,
+        leagueId: selectedLeague?.id
       };
       await chatApi.createMessage(messageData);
       setNewMessageText('');

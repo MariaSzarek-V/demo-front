@@ -3,11 +3,13 @@ import { Container, Card, Form, Button, Modal, Alert } from 'react-bootstrap';
 import EmojiPicker from 'emoji-picker-react';
 import { postApi, commentApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useLeague } from '../contexts/LeagueContext';
 import { formatDistanceToNow } from 'date-fns';
 import { pl } from 'date-fns/locale';
 
 function Posts() {
   const { user } = useAuth();
+  const { selectedLeague } = useLeague();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -51,8 +53,10 @@ function Posts() {
   const QUICK_REACTIONS = ['👍', '❤️', '😂', '😮', '😢'];
 
   useEffect(() => {
-    loadPosts();
-  }, []);
+    if (selectedLeague) {
+      loadPosts();
+    }
+  }, [selectedLeague]);
 
   // Infinite scroll
   useEffect(() => {
@@ -115,7 +119,7 @@ function Posts() {
     try {
       setLoading(true);
       setError(null);
-      const response = await postApi.getAllPosts(0, 10);
+      const response = await postApi.getAllPosts(0, 10, selectedLeague?.id);
       setPosts(response.data.content);
       setHasMore(!response.data.last);
       setPage(0);
@@ -133,7 +137,7 @@ function Posts() {
     try {
       setLoadingMore(true);
       const nextPage = page + 1;
-      const response = await postApi.getAllPosts(nextPage, 10);
+      const response = await postApi.getAllPosts(nextPage, 10, selectedLeague?.id);
       setPosts(prev => [...prev, ...response.data.content]);
       setHasMore(!response.data.last);
       setPage(nextPage);
@@ -156,7 +160,8 @@ function Posts() {
       const postData = {
         title: newPostTitle.trim(),
         content: newPostContent.trim(),
-        imageUrl: newPostImageUrl.trim() || null
+        imageUrl: newPostImageUrl.trim() || null,
+        leagueId: selectedLeague?.id
       };
 
       await postApi.createPost(postData);
@@ -385,7 +390,7 @@ function Posts() {
                 </div>
               </div>
 
-              <h5 className="mb-2">{post.title}</h5>
+              <h5 className="mb-2"><strong>{post.title}</strong></h5>
               <p className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
 
               {post.imageUrl && (

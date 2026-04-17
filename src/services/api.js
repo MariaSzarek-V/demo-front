@@ -40,7 +40,8 @@ export const userApi = {
   getCurrentUser: () => api.get('/user/me'),
   getAllUsers: () => api.get('/user'),
   getUserById: (id) => api.get(`/user/${id}`),
-  updateProfile: (data) => api.put('/user/profile', data)
+  updateProfile: (data) => api.put('/user/profile', data),
+  changePassword: (data) => api.put('/user/change-password', data)
 };
 
 // Game endpoints
@@ -62,7 +63,8 @@ export const predictionApi = {
 
 // Ranking endpoints
 export const rankingApi = {
-  getRankingHistory: () => api.get('/ranking')
+  getRankingHistory: () => api.get('/ranking'),
+  getRankingByLeague: (leagueId) => api.get(`/ranking/league/${leagueId}`)
 };
 
 // Compare endpoints
@@ -72,7 +74,10 @@ export const compareApi = {
 
 // Chat endpoints
 export const chatApi = {
-  getAllMessages: () => api.get('/chat'),
+  getAllMessages: (leagueId = null) => {
+    const url = leagueId ? `/chat?leagueId=${leagueId}` : '/chat';
+    return api.get(url);
+  },
   createMessage: (data) => api.post('/chat', data),
   addReaction: (messageId, emoji) => api.post(`/chat/${messageId}/reactions?emoji=${encodeURIComponent(emoji)}`),
   removeReaction: (messageId, emoji) => api.delete(`/chat/${messageId}/reactions?emoji=${encodeURIComponent(emoji)}`)
@@ -93,7 +98,12 @@ export const authApi = {
 
 // Posts endpoints
 export const postApi = {
-  getAllPosts: (page = 0, size = 10) => api.get(`/posts?page=${page}&size=${size}`),
+  getAllPosts: (page = 0, size = 10, leagueId = null) => {
+    const url = leagueId
+      ? `/posts?page=${page}&size=${size}&leagueId=${leagueId}`
+      : `/posts?page=${page}&size=${size}`;
+    return api.get(url);
+  },
   getPostById: (id) => api.get(`/posts/${id}`),
   createPost: (data) => api.post('/posts', data),
   updatePost: (id, data) => api.put(`/posts/${id}`, data),
@@ -124,6 +134,17 @@ export const adminApi = {
 // Country endpoints
 export const countryApi = {
   getAllCountries: () => api.get('/countries')
+};
+
+// League endpoints
+export const leagueApi = {
+  getAllActiveLeagues: () => api.get('/leagues'),
+  getLeagueById: (id) => api.get(`/leagues/${id}`),
+  getMyLeagues: () => api.get('/leagues/my-leagues'),
+  createLeague: (data) => api.post('/leagues', data),
+  joinLeague: (leagueId) => api.post(`/leagues/${leagueId}/join`),
+  leaveLeague: (leagueId) => api.delete(`/leagues/${leagueId}/leave`),
+  getLeagueMembers: (leagueId) => api.get(`/leagues/${leagueId}/members`)
 };
 
 // Dashboard - compose from multiple endpoints

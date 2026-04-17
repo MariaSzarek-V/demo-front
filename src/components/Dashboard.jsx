@@ -3,17 +3,21 @@ import { Row, Col, Card, Button, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import RankingChart from './RankingChart';
 import NestedDonutChart from './NestedDonutChart';
-import { dashboardApi, resultsApi } from '../services/api';
+import { dashboardApi, resultsApi, rankingApi } from '../services/api';
+import { useLeague } from '../contexts/LeagueContext';
 
 function Dashboard() {
   const navigate = useNavigate();
+  const { selectedLeague } = useLeague();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    if (selectedLeague) {
+      loadDashboard();
+    }
+  }, [selectedLeague]);
 
   const loadDashboard = async () => {
     try {
@@ -21,7 +25,11 @@ function Dashboard() {
 
       // Get dashboard data
       const dashboardData = await dashboardApi.getDashboardData();
-      const { user, upcomingGames, finishedGames, myPredictions, ranking } = dashboardData;
+      const { user, upcomingGames, finishedGames, myPredictions } = dashboardData;
+
+      // Get ranking for selected league
+      const rankingResponse = await rankingApi.getRankingByLeague(selectedLeague.id);
+      const ranking = rankingResponse.data;
 
       // Get my prediction results for statistics
       const myResults = await resultsApi.getMyPredictionResults();

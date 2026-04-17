@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Navbar, Nav, NavDropdown, Container } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext';
+import LeagueSelector from './LeagueSelector';
 
 function Header() {
   const location = useLocation();
@@ -24,7 +25,11 @@ function Header() {
               <span className="fw-bold">PredictionCUP</span>
             </Navbar.Brand>
 
-            {/* User Dropdown */}
+            {/* League Selector */}
+            <div className="d-flex align-items-center gap-3">
+              <LeagueSelector />
+
+              {/* User Dropdown */}
             <NavDropdown
               title={
                 <>
@@ -50,6 +55,7 @@ function Header() {
                 Wyloguj
               </NavDropdown.Item>
             </NavDropdown>
+            </div>
           </div>
 
           {/* Navigation Menu Row - always horizontal */}

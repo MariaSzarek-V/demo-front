@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Container, Card, Form, Button, Row, Col, Image } from 'react-bootstrap';
+import { Card, Form, Button } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext';
 import { userApi } from '../services/api';
 
@@ -12,8 +12,33 @@ function Profile() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
-    avatarUrl: ''
+    avatarColor: '#4e73df'
   });
+
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [passwordError, setPasswordError] = useState(null);
+  const [passwordSuccess, setPasswordSuccess] = useState(false);
+
+  const AVATAR_COLORS = [
+    { color: '#4e73df', name: 'Niebieski' },
+    { color: '#1cc88a', name: 'Zielony' },
+    { color: '#36b9cc', name: 'Cyjan' },
+    { color: '#f6c23e', name: 'Żółty' },
+    { color: '#e74a3b', name: 'Czerwony' },
+    { color: '#858796', name: 'Szary' },
+    { color: '#5a5c69', name: 'Ciemny szary' },
+    { color: '#6f42c1', name: 'Fioletowy' },
+    { color: '#fd7e14', name: 'Pomarańczowy' },
+    { color: '#20c997', name: 'Turkusowy' },
+    { color: '#e83e8c', name: 'Różowy' },
+    { color: '#17a2b8', name: 'Błękitny' }
+  ];
 
   useEffect(() => {
     loadUserProfile();
@@ -26,7 +51,7 @@ function Profile() {
       setFormData({
         username: response.data.username || '',
         email: response.data.email || '',
-        avatarUrl: response.data.avatarUrl || ''
+        avatarColor: response.data.avatarColor || '#4e73df'
       });
       setLoading(false);
     } catch (err) {
@@ -34,6 +59,15 @@ function Profile() {
       setError('Nie udało się załadować profilu');
       setLoading(false);
     }
+  };
+
+  const getInitials = (username) => {
+    if (!username) return '?';
+    const parts = username.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return username.substring(0, 2).toUpperCase();
   };
 
   const handleChange = (e) => {
@@ -46,6 +80,16 @@ function Profile() {
     setError(null);
   };
 
+  const handlePasswordChange = (e) => {
+    const { name, value } = e.target;
+    setPasswordData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    setPasswordError(null);
+    setPasswordSuccess(false);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -56,7 +100,7 @@ function Profile() {
 
       const updateData = {
         username: formData.username,
-        avatarUrl: formData.avatarUrl || null
+        avatarColor: formData.avatarColor
       };
 
       const response = await userApi.updateProfile(updateData);
@@ -76,192 +120,316 @@ function Profile() {
     }
   };
 
+  const handlePasswordSubmit = async (e) => {
+    e.preventDefault();
+
+    // Walidacja
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setPasswordError('Nowe hasła nie są identyczne');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      setPasswordError('Nowe hasło musi mieć co najmniej 8 znaków');
+      return;
+    }
+
+    try {
+      setSaving(true);
+      setPasswordError(null);
+      setPasswordSuccess(false);
+
+      await userApi.changePassword({
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+
+      setPasswordSuccess(true);
+      setSaving(false);
+
+      // Reset formularza
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+
+      // Ukryj komunikat po 3 sekundach
+      setTimeout(() => setPasswordSuccess(false), 3000);
+    } catch (err) {
+      console.error('Error changing password:', err);
+      setPasswordError(err.response?.data?.message || 'Nie udało się zmienić hasła');
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
-      <Container fluid className="px-2 px-md-4 px-lg-5">
+      <div className="content-container">
         <div className="text-center py-5">
           <div className="spinner-border text-primary" role="status">
             <span className="visually-hidden">Ładowanie...</span>
           </div>
         </div>
-      </Container>
+      </div>
     );
   }
 
   return (
-    <Container fluid className="px-2 px-md-4 px-lg-5">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3 mb-0 text-gray-800">
-          <i className="fas fa-user-circle me-2"></i>
-          Profil użytkownika
-        </h1>
-      </div>
+    <div className="content-container content-container-narrow">
+      <Card className="shadow mb-4">
+        <Card.Body>
+          {/* Avatar Preview */}
+          <div className="text-center mb-4">
+            <div
+              style={{
+                width: '120px',
+                height: '120px',
+                margin: '0 auto',
+                borderRadius: '50%',
+                backgroundColor: formData.avatarColor,
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '3rem',
+                fontWeight: 'bold',
+                border: '4px solid #e3e6f0'
+              }}
+            >
+              {getInitials(formData.username)}
+            </div>
+            <div className="mt-3">
+              <h4>{formData.username}</h4>
+              <p className="text-muted mb-0">{formData.email}</p>
+            </div>
+          </div>
 
-      <Row className="justify-content-center">
-        <Col lg={8} xl={6}>
-          <Card className="shadow mb-4">
-            <Card.Body>
-              {/* Avatar Preview */}
-              <div className="text-center mb-4">
-                <div
-                  style={{
-                    width: '150px',
-                    height: '150px',
-                    margin: '0 auto',
-                    borderRadius: '50%',
-                    overflow: 'hidden',
-                    border: '4px solid #4e73df',
-                    backgroundColor: '#f8f9fc',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {formData.avatarUrl ? (
-                    <Image
-                      src={formData.avatarUrl}
-                      alt="Avatar"
-                      style={{
-                        width: '100%',
-                        height: '100%',
-                        objectFit: 'cover'
-                      }}
-                      onError={(e) => {
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
+          {/* Success Message */}
+          {success && (
+            <div className="alert alert-success" role="alert">
+              <i className="fas fa-check-circle me-2"></i>
+              Profil został zaktualizowany pomyślnie!
+            </div>
+          )}
+
+          {/* Error Message */}
+          {error && (
+            <div className="alert alert-danger" role="alert">
+              <i className="fas fa-exclamation-circle me-2"></i>
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <Form onSubmit={handleSubmit}>
+            <Form.Group className="mb-3">
+              <Form.Label>
+                <i className="fas fa-user me-2"></i>
+                Nazwa użytkownika
+              </Form.Label>
+              <Form.Control
+                type="text"
+                name="username"
+                value={formData.username}
+                onChange={handleChange}
+                required
+                minLength={5}
+                maxLength={50}
+                placeholder="Wprowadź nazwę użytkownika"
+              />
+              <Form.Text className="text-muted">
+                Od 5 do 50 znaków
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>
+                <i className="fas fa-envelope me-2"></i>
+                Email
+              </Form.Label>
+              <Form.Control
+                type="email"
+                value={formData.email}
+                disabled
+                style={{ backgroundColor: '#e9ecef' }}
+              />
+              <Form.Text className="text-muted">
+                Email nie może być zmieniony
+              </Form.Text>
+            </Form.Group>
+
+            <Form.Group className="mb-4">
+              <Form.Label>
+                <i className="fas fa-palette me-2"></i>
+                Kolor avatara
+              </Form.Label>
+              <div className="d-flex flex-wrap gap-2 mt-2">
+                {AVATAR_COLORS.map((item) => (
                   <div
+                    key={item.color}
+                    onClick={() => setFormData(prev => ({ ...prev, avatarColor: item.color }))}
                     style={{
-                      display: formData.avatarUrl ? 'none' : 'flex',
-                      fontSize: '4rem',
-                      color: '#858796'
+                      width: '50px',
+                      height: '50px',
+                      borderRadius: '50%',
+                      backgroundColor: item.color,
+                      cursor: 'pointer',
+                      border: formData.avatarColor === item.color ? '4px solid #000' : '2px solid #e3e6f0',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      fontSize: '0.8rem'
                     }}
+                    title={item.name}
                   >
-                    <i className="fas fa-user-circle"></i>
+                    {formData.avatarColor === item.color && (
+                      <i className="fas fa-check"></i>
+                    )}
                   </div>
-                </div>
-                <div className="mt-3">
-                  <h4>{formData.username}</h4>
-                  <p className="text-muted">{formData.email}</p>
-                </div>
+                ))}
               </div>
+              <Form.Text className="text-muted">
+                Wybierz kolor swojego avatara
+              </Form.Text>
+            </Form.Group>
 
-              {/* Success Message */}
-              {success && (
+            <div className="d-grid gap-2">
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                    Zapisywanie...
+                  </>
+                ) : (
+                  <>
+                    <i className="fas fa-save me-2"></i>
+                    Zapisz zmiany
+                  </>
+                )}
+              </Button>
+            </div>
+          </Form>
+        </Card.Body>
+      </Card>
+
+      {/* Password Change Card */}
+      <Card className="shadow mb-4">
+        <Card.Body>
+          <div
+            className="d-flex justify-content-between align-items-center"
+            style={{ cursor: 'pointer' }}
+            onClick={() => setShowPasswordSection(!showPasswordSection)}
+          >
+            <h6 className="text-primary mb-0">
+              <i className="fas fa-lock me-2"></i>
+              Zmień hasło
+            </h6>
+            <i className={`fas fa-chevron-${showPasswordSection ? 'up' : 'down'}`}></i>
+          </div>
+
+          {showPasswordSection && (
+            <div className="mt-3">
+              {/* Password Success Message */}
+              {passwordSuccess && (
                 <div className="alert alert-success" role="alert">
                   <i className="fas fa-check-circle me-2"></i>
-                  Profil został zaktualizowany pomyślnie!
+                  Hasło zostało zmienione pomyślnie!
                 </div>
               )}
 
-              {/* Error Message */}
-              {error && (
+              {/* Password Error Message */}
+              {passwordError && (
                 <div className="alert alert-danger" role="alert">
                   <i className="fas fa-exclamation-circle me-2"></i>
-                  {error}
+                  {passwordError}
                 </div>
               )}
 
-              {/* Form */}
-              <Form onSubmit={handleSubmit}>
+              <Form onSubmit={handlePasswordSubmit}>
                 <Form.Group className="mb-3">
                   <Form.Label>
-                    <i className="fas fa-user me-2"></i>
-                    Nazwa użytkownika
+                    <i className="fas fa-key me-2"></i>
+                    Aktualne hasło
                   </Form.Label>
                   <Form.Control
-                    type="text"
-                    name="username"
-                    value={formData.username}
-                    onChange={handleChange}
+                    type="password"
+                    name="currentPassword"
+                    value={passwordData.currentPassword}
+                    onChange={handlePasswordChange}
                     required
-                    minLength={5}
-                    maxLength={50}
-                    placeholder="Wprowadź nazwę użytkownika"
+                    placeholder="Wprowadź aktualne hasło"
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                  <Form.Label>
+                    <i className="fas fa-lock me-2"></i>
+                    Nowe hasło
+                  </Form.Label>
+                  <Form.Control
+                    type="password"
+                    name="newPassword"
+                    value={passwordData.newPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    minLength={8}
+                    placeholder="Wprowadź nowe hasło"
                   />
                   <Form.Text className="text-muted">
-                    Od 5 do 50 znaków
+                    Co najmniej 8 znaków
                   </Form.Text>
                 </Form.Group>
 
                 <Form.Group className="mb-3">
                   <Form.Label>
-                    <i className="fas fa-envelope me-2"></i>
-                    Email
+                    <i className="fas fa-lock me-2"></i>
+                    Potwierdź nowe hasło
                   </Form.Label>
                   <Form.Control
-                    type="email"
-                    value={formData.email}
-                    disabled
-                    style={{ backgroundColor: '#e9ecef' }}
+                    type="password"
+                    name="confirmPassword"
+                    value={passwordData.confirmPassword}
+                    onChange={handlePasswordChange}
+                    required
+                    minLength={8}
+                    placeholder="Potwierdź nowe hasło"
                   />
-                  <Form.Text className="text-muted">
-                    Email nie może być zmieniony
-                  </Form.Text>
-                </Form.Group>
-
-                <Form.Group className="mb-4">
-                  <Form.Label>
-                    <i className="fas fa-image me-2"></i>
-                    URL zdjęcia profilowego
-                  </Form.Label>
-                  <Form.Control
-                    type="url"
-                    name="avatarUrl"
-                    value={formData.avatarUrl}
-                    onChange={handleChange}
-                    maxLength={500}
-                    placeholder="https://example.com/avatar.jpg"
-                  />
-                  <Form.Text className="text-muted">
-                    Wklej URL do swojego zdjęcia profilowego (opcjonalnie)
-                  </Form.Text>
                 </Form.Group>
 
                 <div className="d-grid gap-2">
                   <Button
                     type="submit"
-                    variant="primary"
-                    size="lg"
+                    variant="warning"
                     disabled={saving}
                   >
                     {saving ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                        Zapisywanie...
+                        Zmieniam hasło...
                       </>
                     ) : (
                       <>
-                        <i className="fas fa-save me-2"></i>
-                        Zapisz zmiany
+                        <i className="fas fa-key me-2"></i>
+                        Zmień hasło
                       </>
                     )}
                   </Button>
                 </div>
               </Form>
-            </Card.Body>
-          </Card>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
 
-          {/* Additional Info Card */}
-          <Card className="shadow">
-            <Card.Body>
-              <h6 className="text-primary mb-3">
-                <i className="fas fa-info-circle me-2"></i>
-                Wskazówki
-              </h6>
-              <ul className="mb-0" style={{ fontSize: '0.9rem' }}>
-                <li className="mb-2">Możesz użyć zewnętrznego URL obrazka jako avatara</li>
-                <li className="mb-2">Zalecane usługi do hostowania zdjęć: Imgur, Gravatar</li>
-                <li className="mb-2">Obsługiwane formaty: JPG, PNG, GIF</li>
-                <li>Twój avatar będzie widoczny w komentarzach i rankingu</li>
-              </ul>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-    </Container>
+    </div>
   );
 }
 

@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
+import { LeagueProvider } from './contexts/LeagueContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -20,38 +21,40 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route
-            path="/*"
-            element={
-              <ProtectedRoute>
-                <div id="wrapper">
-                  <div id="content-wrapper" className="d-flex flex-column" style={{ marginLeft: 0 }}>
-                    <div id="content">
-                      <Header />
-                      <Routes>
-                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                        <Route path="/dashboard" element={<Dashboard />} />
-                        <Route path="/games" element={<Games />} />
-                        <Route path="/admin/games" element={<AdminGames />} />
-                        <Route path="/ranking" element={<Ranking />} />
-                        <Route path="/compare/:userId" element={<Compare />} />
-                        <Route path="/chat" element={<Chat />} />
-                        <Route path="/posts" element={<Posts />} />
-                        <Route path="/profile" element={<Profile />} />
-                        <Route path="/results/:gameId" element={<GameResults />} />
-                        <Route path="/predictions/new/:gameId" element={<PredictionForm />} />
-                        <Route path="/predictions/edit/:predictionId" element={<PredictionForm />} />
-                      </Routes>
+        <LeagueProvider>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <div id="wrapper">
+                    <div id="content-wrapper" className="d-flex flex-column" style={{ marginLeft: 0 }}>
+                      <div id="content">
+                        <Header />
+                        <Routes>
+                          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                          <Route path="/dashboard" element={<Dashboard />} />
+                          <Route path="/games" element={<Games />} />
+                          <Route path="/admin/games" element={<AdminGames />} />
+                          <Route path="/ranking" element={<Ranking />} />
+                          <Route path="/compare/:userId" element={<Compare />} />
+                          <Route path="/chat" element={<Chat />} />
+                          <Route path="/posts" element={<Posts />} />
+                          <Route path="/profile" element={<Profile />} />
+                          <Route path="/results/:gameId" element={<GameResults />} />
+                          <Route path="/predictions/new/:gameId" element={<PredictionForm />} />
+                          <Route path="/predictions/edit/:predictionId" element={<PredictionForm />} />
+                        </Routes>
+                      </div>
+                      <Footer />
                     </div>
-                    <Footer />
                   </div>
-                </div>
-              </ProtectedRoute>
-            }
-          />
-        </Routes>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+        </LeagueProvider>
       </AuthProvider>
     </Router>
   );

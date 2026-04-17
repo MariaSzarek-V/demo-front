@@ -3,22 +3,26 @@ import { Card } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { rankingApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useLeague } from '../contexts/LeagueContext';
 
 function Ranking() {
   const { user } = useAuth();
+  const { selectedLeague } = useLeague();
   const navigate = useNavigate();
   const [ranking, setRanking] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadRanking();
-  }, []);
+    if (selectedLeague) {
+      loadRanking();
+    }
+  }, [selectedLeague]);
 
   const loadRanking = async () => {
     try {
       setLoading(true);
-      const response = await rankingApi.getRankingHistory();
+      const response = await rankingApi.getRankingByLeague(selectedLeague.id);
       console.log('Ranking data:', response.data);
       setRanking(response.data);
       setLoading(false);
