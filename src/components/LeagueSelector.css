@@ -27,10 +27,23 @@
   font-size: 18px;
 }
 
+.league-button-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
 .league-name {
   max-width: 150px;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.league-stats {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
 }
 
@@ -115,4 +128,6 @@
   right: 0;
   bottom: 0;
   z-index: 1000;
+  background-color: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 }
