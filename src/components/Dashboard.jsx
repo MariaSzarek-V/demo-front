@@ -293,10 +293,12 @@ function Dashboard() {
         {/* Twoje wyniki - Lewa kolumna */}
         <Col xl={6} md={6} className="mb-4">
           <Card className="border-start border-primary border-4 shadow h-100">
-            <Card.Body className="py-3">
-              <div className="text-xs fw-bold text-primary text-uppercase mb-3">
+            <Card.Header className="py-3">
+              <h6 className="m-0 fw-bold text-primary text-uppercase">
                 🎯 {t('yourStyleOfPlay')}
-              </div>
+              </h6>
+            </Card.Header>
+            <Card.Body className="py-3">
 
               {/* Punktacja */}
               <div className="mb-3">
@@ -404,11 +406,13 @@ function Dashboard() {
 
         {/* Mini Ranking */}
         <Col xl={6} md={6} className="mb-4">
-          <Card className="border-start border-warning border-4 shadow h-100">
-            <Card.Body className="py-3">
-              <div className="text-xs fw-bold text-warning text-uppercase mb-2">
+          <Card className="border-start border-danger border-4 shadow h-100">
+            <Card.Header className="py-3">
+              <h6 className="m-0 fw-bold text-danger text-uppercase">
                 🏆 {t('miniRanking')}
-              </div>
+              </h6>
+            </Card.Header>
+            <Card.Body className="py-3">
               {stats.miniRanking && stats.miniRanking.length > 0 ? (
                 <>
                   <div className="ranking-list" style={{ fontSize: '0.9rem' }}>
@@ -470,10 +474,12 @@ function Dashboard() {
         {stats.upcomingGames && stats.upcomingGames.length > 0 && (
           <Col xl={6} md={6} className="mb-4" style={{ display: 'flex', flexDirection: 'column' }}>
             <Card className="border-start border-info border-4 shadow" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Card.Body style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div className="text-xs fw-bold text-info text-uppercase mb-2">
+              <Card.Header className="py-3">
+                <h6 className="m-0 fw-bold text-info text-uppercase">
                   📅 {t('upcomingMatches')}
-                </div>
+                </h6>
+              </Card.Header>
+              <Card.Body style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div className="games-list" style={{ fontSize: '0.9rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
               {stats.upcomingGames.map((game, index) => (
                 <div
@@ -573,11 +579,13 @@ function Dashboard() {
         {/* Ostatnie mecze */}
         {stats.recentGames && stats.recentGames.length > 0 && (
           <Col xl={6} md={6} className="mb-4" style={{ display: 'flex', flexDirection: 'column' }}>
-            <Card className="border-start border-warning border-4 shadow" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-              <Card.Body style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                <div className="text-xs fw-bold text-warning text-uppercase mb-2">
+            <Card className="border-start border-danger border-4 shadow" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Card.Header className="py-3">
+                <h6 className="m-0 fw-bold text-danger text-uppercase">
                   ⏱️ {t('recentMatches')}
-                </div>
+                </h6>
+              </Card.Header>
+              <Card.Body style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div className="games-list" style={{ fontSize: '0.9rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
               {stats.recentGames.map((game, index) => (
                 <div
@@ -691,16 +699,9 @@ function Dashboard() {
       {/* Wykresy */}
       <Row className="mb-4">
         <Col xs={12}>
-          <Card className="shadow">
-            <Card.Header className="py-3">
-              <h6 className="m-0 fw-bold text-danger">
-                HARDCODED !!! TO DO
-              </h6>
-            </Card.Header>
+          <Card className="border-start border-success border-4 shadow">
             <Card.Body>
-              <div className="chart-area">
-                <RankingChart currentUser={stats?.user} />
-              </div>
+              <RankingChart currentUser={stats?.user} />
             </Card.Body>
           </Card>
         </Col>

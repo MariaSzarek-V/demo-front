@@ -66,7 +66,7 @@ export const predictionApi = {
 export const rankingApi = {
   getRankingHistory: () => api.get('/ranking'),
   getRankingByLeague: (leagueId) => api.get(`/ranking/league/${leagueId}`),
-  getRankingHistoryForChart: () => api.get('/ranking/history/all')
+  getRankingHistoryForChart: (leagueId) => api.get(`/ranking/history/chart?leagueId=${leagueId}`)
 };
 
 // Compare endpoints

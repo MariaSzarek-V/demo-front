@@ -14,6 +14,13 @@ function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    // Walidacja pól - zawsze ten sam komunikat dla bezpieczeństwa
+    if (!username.trim() || !password) {
+      setError('Nieprawidłowa nazwa użytkownika lub hasło');
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -30,18 +37,14 @@ function Login() {
     <div className="bg-gradient-primary min-vh-100 d-flex align-items-center">
       <Container>
         <Row className="justify-content-center">
-          <Col xl={10} lg={12} md={9}>
+          <Col xs={12} sm={10} md={8} lg={6} xl={5} xxl={4}>
             <Card className="o-hidden border-0 shadow-lg my-5">
               <Card.Body className="p-0">
-                <Row>
-                  <Col lg={6} className="d-none d-lg-block bg-login-image"></Col>
-                  <Col lg={6}>
-                    <div className="p-5">
-                      <div className="text-center mb-4">
-                        <i className="fas fa-trophy fa-3x text-primary mb-3"></i>
-                        <h1 className="h4 text-gray-900">PredictionCUP</h1>
-                        <p className="text-muted">Zaloguj się do swojego konta</p>
-                      </div>
+                <div className="px-5 pt-5 pb-3">
+                  <div className="text-center mb-4">
+                    <i className="fas fa-trophy fa-3x text-primary mb-3"></i>
+                    <h1 className="h4 text-gray-900">PredictionCUP</h1>
+                  </div>
 
                       {error && (
                         <Alert variant="danger" className="text-center">
@@ -57,7 +60,6 @@ function Login() {
                             placeholder="Nazwa użytkownika"
                             value={username}
                             onChange={(e) => setUsername(e.target.value)}
-                            required
                             disabled={loading}
                           />
                         </Form.Group>
@@ -69,7 +71,6 @@ function Login() {
                             placeholder="Hasło"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            required
                             disabled={loading}
                           />
                         </Form.Group>
@@ -86,20 +87,11 @@ function Login() {
                               Logowanie...
                             </>
                           ) : (
-                            'Zaloguj się'
+                            'Zaloguj'
                           )}
                         </Button>
                       </Form>
-
-                      <hr />
-                      <div className="text-center">
-                        <a className="small" href="/register">
-                          Utwórz konto!
-                        </a>
-                      </div>
                     </div>
-                  </Col>
-                </Row>
               </Card.Body>
             </Card>
           </Col>

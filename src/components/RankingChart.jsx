@@ -11,6 +11,7 @@ import {
   Legend
 } from 'chart.js';
 import { rankingApi } from '../services/api';
+import { useLeague } from '../contexts/LeagueContext';
 
 ChartJS.register(
   CategoryScale,
@@ -23,6 +24,7 @@ ChartJS.register(
 );
 
 function RankingChart({ currentUser }) {
+  const { selectedLeague } = useLeague();
   const [allUsersHistory, setAllUsersHistory] = useState([]);
   const [gameLabels, setGameLabels] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -30,9 +32,11 @@ function RankingChart({ currentUser }) {
 
   useEffect(() => {
     const fetchRankingHistory = async () => {
+      if (!selectedLeague) return;
+
       try {
         setLoading(true);
-        const response = await rankingApi.getRankingHistoryForChart();
+        const response = await rankingApi.getRankingHistoryForChart(selectedLeague.id);
         const data = response.data;
 
         setGameLabels(data.gameLabels || []);
@@ -47,7 +51,7 @@ function RankingChart({ currentUser }) {
     };
 
     fetchRankingHistory();
-  }, []);
+  }, [selectedLeague]);
 
   const currentUsername = currentUser?.username || '';
 
@@ -100,6 +104,7 @@ function RankingChart({ currentUser }) {
         borderWidth: isCurrentUser ? 4 : 2,
         tension: 0.1,
         fill: false,
+        spanGaps: true,
         pointRadius: isCurrentUser ? 6 : 4,
         pointHoverRadius: isCurrentUser ? 8 : 6,
         pointBackgroundColor: color,
@@ -138,18 +143,15 @@ function RankingChart({ currentUser }) {
           color: 'rgba(0, 0, 0, 0.1)'
         },
         title: {
-          display: true,
-          text: 'Pozycja w rankingu'
+          display: false
         }
       },
       x: {
         title: {
-          display: true,
-          text: 'Mecze'
+          display: false
         },
         ticks: {
-          maxRotation: 90,
-          minRotation: 90
+          display: false
         }
       }
     },
@@ -161,12 +163,25 @@ function RankingChart({ currentUser }) {
         enabled: true,
         mode: 'index',
         intersect: false,
+        itemSort: function(a, b) {
+          return a.parsed.y - b.parsed.y;
+        },
         callbacks: {
           title: function (context) {
             return context[0].label;
           },
           label: function (context) {
-            return '#' + context.parsed.y + ' - ' + context.dataset.label;
+            const position = '#' + context.parsed.y;
+            const name = context.dataset.label;
+            return position + '  ' + name;
+          },
+          labelColor: function(context) {
+            return {
+              borderColor: context.dataset.borderColor,
+              backgroundColor: context.dataset.borderColor,
+              borderWidth: 2,
+              borderRadius: 2
+            };
           }
         }
       }
@@ -200,9 +215,19 @@ function RankingChart({ currentUser }) {
   }
 
   return (
-    <div style={{ width: '100%', position: 'relative' }}>
+    <div style={{ width: '100%', position: 'relative', padding: '20px' }}>
+      {/* Tytuł */}
+      <div className="text-xs fw-bold text-success text-uppercase mb-2">
+        📈 Historia pozycji w rankingu
+      </div>
+
+      {/* Wykres */}
+      <div style={{ width: '100%', height: '300px', position: 'relative' }}>
+        <Line data={data} options={options} />
+      </div>
+
       {/* Interaktywna legenda */}
-      <div className="mb-3 d-flex flex-wrap gap-2 justify-content-center" style={{ maxWidth: '100%' }}>
+      <div className="mt-3 d-flex flex-wrap gap-2 justify-content-center" style={{ maxWidth: '100%' }}>
         {allUsersHistory.map((user, index) => {
           const isCurrentUser = user.username === currentUsername;
           const color = isCurrentUser ? '#e74a3b' : colors[index % colors.length];
@@ -239,11 +264,6 @@ function RankingChart({ currentUser }) {
             </button>
           );
         })}
-      </div>
-
-      {/* Wykres */}
-      <div style={{ width: '100%', height: '300px', position: 'relative' }}>
-        <Line data={data} options={options} />
       </div>
     </div>
   );
