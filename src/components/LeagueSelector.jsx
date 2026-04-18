@@ -3,11 +3,38 @@ import { useLeague } from '../contexts/LeagueContext';
 import './LeagueSelector.css';
 
 const LeagueSelector = () => {
-  const { selectedLeague, myLeagues, leagueRankings, selectLeague } = useLeague();
+  const { selectedLeague, myLeagues, leagueRankings, selectLeague, loading } = useLeague();
   const [isOpen, setIsOpen] = useState(false);
 
-  if (!selectedLeague || myLeagues.length === 0) {
-    return null;
+  // 🔄 Pokaż loading state podczas ładowania
+  if (loading && !selectedLeague) {
+    return (
+      <div className="league-selector">
+        <button className="league-selector-button" disabled>
+          <span className="league-icon">⏳</span>
+          <div className="league-button-info">
+            <span className="league-name">Ładowanie lig...</span>
+          </div>
+        </button>
+      </div>
+    );
+  }
+
+  // 🚫 Jeśli użytkownik nie ma lig, pokaż przycisk "Dołącz do ligi"
+  if (!selectedLeague && myLeagues.length === 0) {
+    return (
+      <div className="league-selector">
+        <button
+          className="league-selector-button"
+          onClick={() => window.location.href = '/leagues'}
+        >
+          <span className="league-icon">➕</span>
+          <div className="league-button-info">
+            <span className="league-name">Dołącz do ligi</span>
+          </div>
+        </button>
+      </div>
+    );
   }
 
   const selectedRanking = leagueRankings[selectedLeague.id];

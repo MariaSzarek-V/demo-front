@@ -4,18 +4,70 @@ import { leagueApi, rankingApi, userApi } from '../services/api';
 const LeagueContext = createContext(null);
 
 export const LeagueProvider = ({ children }) => {
-  const [selectedLeague, setSelectedLeague] = useState(null);
-  const [myLeagues, setMyLeagues] = useState([]);
-  const [leagueRankings, setLeagueRankings] = useState({});
+  // 1️⃣ INSTANT LOAD z localStorage - użytkownik widzi dane od razu!
+  const [selectedLeague, setSelectedLeague] = useState(() => {
+    const savedLeagueId = localStorage.getItem('selectedLeagueId');
+    const savedLeagueData = localStorage.getItem('selectedLeagueData');
+
+    if (savedLeagueId && savedLeagueData) {
+      try {
+        return JSON.parse(savedLeagueData);
+      } catch (e) {
+        console.error('Error parsing saved league data:', e);
+        return null;
+      }
+    }
+    return null;
+  });
+
+  const [myLeagues, setMyLeagues] = useState(() => {
+    const savedLeagues = localStorage.getItem('myLeagues');
+    const savedTimestamp = localStorage.getItem('myLeaguesTimestamp');
+
+    // Cache jest ważny przez 10 minut
+    const isCacheValid = savedTimestamp && (Date.now() - parseInt(savedTimestamp)) < 10 * 60 * 1000;
+
+    if (savedLeagues && isCacheValid) {
+      try {
+        return JSON.parse(savedLeagues);
+      } catch (e) {
+        console.error('Error parsing saved leagues:', e);
+        return [];
+      }
+    }
+    return [];
+  });
+
+  const [leagueRankings, setLeagueRankings] = useState(() => {
+    const savedRankings = localStorage.getItem('leagueRankings');
+    const savedTimestamp = localStorage.getItem('leagueRankingsTimestamp');
+
+    // Cache jest ważny przez 5 minut
+    const isCacheValid = savedTimestamp && (Date.now() - parseInt(savedTimestamp)) < 5 * 60 * 1000;
+
+    if (savedRankings && isCacheValid) {
+      try {
+        return JSON.parse(savedRankings);
+      } catch (e) {
+        console.error('Error parsing saved rankings:', e);
+        return {};
+      }
+    }
+    return {};
+  });
+
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 2️⃣ W TLE odśwież dane z API
     loadMyLeagues();
   }, []);
 
   const loadMyLeagues = async () => {
     try {
       setLoading(true);
+
+      // 3️⃣ Pobierz ligi (szybkie zapytanie bez rankingów)
       const [leaguesResponse, userResponse] = await Promise.all([
         leagueApi.getMyLeagues(),
         userApi.getCurrentUser()
@@ -24,7 +76,33 @@ export const LeagueProvider = ({ children }) => {
       const leagues = leaguesResponse.data;
       const currentUsername = userResponse.data.username;
 
-      // Fetch ranking for each league
+      // 4️⃣ Zapisz ligi w localStorage z timestamp
+      localStorage.setItem('myLeagues', JSON.stringify(leagues));
+      localStorage.setItem('myLeaguesTimestamp', Date.now().toString());
+      setMyLeagues(leagues);
+
+      // Auto-select first league if none selected
+      if (leagues.length > 0 && !selectedLeague) {
+        const firstLeague = leagues[0];
+        setSelectedLeague(firstLeague);
+        localStorage.setItem('selectedLeagueId', firstLeague.id.toString());
+        localStorage.setItem('selectedLeagueData', JSON.stringify(firstLeague));
+      }
+
+      // 5️⃣ LAZY LOAD rankingów w tle - nie blokuje UI!
+      loadLeagueRankings(leagues, currentUsername);
+
+    } catch (error) {
+      console.error('Failed to load leagues:', error);
+      setMyLeagues([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 6️⃣ Osobna funkcja do ładowania rankingów - nie blokuje głównego UI
+  const loadLeagueRankings = async (leagues, currentUsername) => {
+    try {
       const rankingPromises = leagues.map(league =>
         rankingApi.getRankingByLeague(league.id)
           .then(response => ({
@@ -50,24 +128,20 @@ export const LeagueProvider = ({ children }) => {
         };
       });
 
+      // 7️⃣ Zapisz rankingi w localStorage z timestamp
+      localStorage.setItem('leagueRankings', JSON.stringify(rankingMap));
+      localStorage.setItem('leagueRankingsTimestamp', Date.now().toString());
       setLeagueRankings(rankingMap);
-      setMyLeagues(leagues);
-
-      // Auto-select first league if none selected
-      if (leagues.length > 0 && !selectedLeague) {
-        setSelectedLeague(leagues[0]);
-      }
     } catch (error) {
-      console.error('Failed to load leagues:', error);
-      setMyLeagues([]);
-    } finally {
-      setLoading(false);
+      console.error('Failed to load league rankings:', error);
     }
   };
 
   const selectLeague = (league) => {
     setSelectedLeague(league);
-    localStorage.setItem('selectedLeagueId', league.id);
+    // 8️⃣ Zapisz wybraną ligę do localStorage (ID + pełne dane)
+    localStorage.setItem('selectedLeagueId', league.id.toString());
+    localStorage.setItem('selectedLeagueData', JSON.stringify(league));
   };
 
   const createLeague = async (leagueData) => {
