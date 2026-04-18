@@ -65,7 +65,8 @@ export const predictionApi = {
 // Ranking endpoints
 export const rankingApi = {
   getRankingHistory: () => api.get('/ranking'),
-  getRankingByLeague: (leagueId) => api.get(`/ranking/league/${leagueId}`)
+  getRankingByLeague: (leagueId) => api.get(`/ranking/league/${leagueId}`),
+  getRankingHistoryForChart: () => api.get('/ranking/history/all')
 };
 
 // Compare endpoints
@@ -87,7 +88,8 @@ export const chatApi = {
 // Results endpoints
 export const resultsApi = {
   getMyPredictionResults: () => api.get('/results/my-prediction-result'),
-  getAllUsersPredictionResults: (gameId) => api.get(`/results/allusers-prediction-result/${gameId}`)
+  getAllUsersPredictionResults: (gameId) => api.get(`/results/allusers-prediction-result/${gameId}`),
+  getPredictionPatternStats: (leagueId) => api.get(`/results/prediction-pattern-stats?leagueId=${leagueId}`)
 };
 
 // Auth endpoints

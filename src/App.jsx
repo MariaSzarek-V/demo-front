@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LeagueProvider } from './contexts/LeagueContext';
+import { LanguageProvider } from './contexts/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -21,8 +22,9 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <LeagueProvider>
-          <Routes>
+        <LanguageProvider>
+          <LeagueProvider>
+            <Routes>
             <Route path="/login" element={<Login />} />
             <Route
               path="/*"
@@ -53,8 +55,9 @@ function App() {
                 </ProtectedRoute>
               }
             />
-          </Routes>
-        </LeagueProvider>
+            </Routes>
+          </LeagueProvider>
+        </LanguageProvider>
       </AuthProvider>
     </Router>
   );

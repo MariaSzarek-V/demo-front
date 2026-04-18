@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Line } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend
 } from 'chart.js';
+import { rankingApi } from '../services/api';
 
 ChartJS.register(
   CategoryScale,
@@ -21,30 +22,34 @@ ChartJS.register(
   Legend
 );
 
-function RankingChart() {
-  const currentUsername = 'Maria Szarek';
+function RankingChart({ currentUser }) {
+  const [allUsersHistory, setAllUsersHistory] = useState([]);
+  const [gameLabels, setGameLabels] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Mock data - dane wszystkich użytkowników
-  const allUsersHistory = [
-    {
-      username: 'Jan Kowalski',
-      positions: [2, 1, 1, 2, 3, 1]
-    },
-    {
-      username: 'Maria Szarek',
-      positions: [1, 2, 3, 1, 2, 2]
-    },
-    {
-      username: 'Piotr Nowak',
-      positions: [3, 3, 2, 3, 1, 3]
-    },
-    {
-      username: 'Anna Wiśniewska',
-      positions: [5, 5, 6, 5, 4, 8]
-    }
-  ];
+  useEffect(() => {
+    const fetchRankingHistory = async () => {
+      try {
+        setLoading(true);
+        const response = await rankingApi.getRankingHistoryForChart();
+        const data = response.data;
 
-  const gameLabels = ['POL-GER', 'ESP-FRA', 'ITA-POR', 'ENG-BRA', 'NED-ARG', 'BEL-CRO'];
+        setGameLabels(data.gameLabels || []);
+        setAllUsersHistory(data.allUsersHistory || []);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching ranking history:', err);
+        setError('Nie udało się załadować historii rankingu');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRankingHistory();
+  }, []);
+
+  const currentUsername = currentUser?.username || '';
 
   const colors = [
     '#4e73df', // blue
@@ -60,12 +65,18 @@ function RankingChart() {
   ];
 
   // State do zarządzania widocznością użytkowników
-  const [visibleUsers, setVisibleUsers] = useState(
-    allUsersHistory.reduce((acc, user) => {
-      acc[user.username] = true;
-      return acc;
-    }, {})
-  );
+  const [visibleUsers, setVisibleUsers] = useState({});
+
+  // Inicjalizuj widoczność użytkowników gdy dane się załadują
+  useEffect(() => {
+    if (allUsersHistory.length > 0) {
+      const initialVisibility = allUsersHistory.reduce((acc, user) => {
+        acc[user.username] = true;
+        return acc;
+      }, {});
+      setVisibleUsers(initialVisibility);
+    }
+  }, [allUsersHistory]);
 
   const toggleUser = (username) => {
     setVisibleUsers(prev => ({
@@ -89,11 +100,11 @@ function RankingChart() {
         borderWidth: isCurrentUser ? 4 : 2,
         tension: 0.1,
         fill: false,
-        pointRadius: 0,
-        pointHoverRadius: 0,
+        pointRadius: isCurrentUser ? 6 : 4,
+        pointHoverRadius: isCurrentUser ? 8 : 6,
         pointBackgroundColor: color,
         pointBorderColor: '#fff',
-        pointBorderWidth: 0
+        pointBorderWidth: 2
       };
     });
 
@@ -161,6 +172,32 @@ function RankingChart() {
       }
     }
   };
+
+  if (loading) {
+    return (
+      <div className="text-center py-5">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Ładowanie...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="alert alert-danger" role="alert">
+        {error}
+      </div>
+    );
+  }
+
+  if (!allUsersHistory || allUsersHistory.length === 0) {
+    return (
+      <div className="alert alert-info" role="alert">
+        Brak danych historii rankingu. Historia będzie dostępna po rozegraniu kilku meczów.
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: '100%', position: 'relative' }}>

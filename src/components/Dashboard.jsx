@@ -2,13 +2,17 @@ import { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Badge } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import RankingChart from './RankingChart';
-import NestedDonutChart from './NestedDonutChart';
+import PredictionPatternChart from './PredictionPatternChart';
 import { dashboardApi, resultsApi, rankingApi } from '../services/api';
 import { useLeague } from '../contexts/LeagueContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from '../i18n/translations';
 
 function Dashboard() {
   const navigate = useNavigate();
   const { selectedLeague } = useLeague();
+  const { language } = useLanguage();
+  const t = useTranslation(language);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -18,6 +22,39 @@ function Dashboard() {
       loadDashboard();
     }
   }, [selectedLeague]);
+
+  // Synchronize game card heights after rendering
+  useEffect(() => {
+    if (!loading && stats) {
+      // Wait for DOM to render
+      setTimeout(() => {
+        const upcomingGames = document.querySelectorAll('.upcoming-game-item');
+        const recentGames = document.querySelectorAll('.recent-game-item');
+
+        const maxLength = Math.max(upcomingGames.length, recentGames.length);
+
+        for (let i = 0; i < maxLength; i++) {
+          const upcomingCard = upcomingGames[i];
+          const recentCard = recentGames[i];
+
+          if (upcomingCard && recentCard) {
+            // Reset heights
+            upcomingCard.style.height = 'auto';
+            recentCard.style.height = 'auto';
+
+            // Get natural heights
+            const upcomingHeight = upcomingCard.offsetHeight;
+            const recentHeight = recentCard.offsetHeight;
+
+            // Set both to max height
+            const maxHeight = Math.max(upcomingHeight, recentHeight);
+            upcomingCard.style.height = `${maxHeight}px`;
+            recentCard.style.height = `${maxHeight}px`;
+          }
+        }
+      }, 100);
+    }
+  }, [loading, stats]);
 
   const loadDashboard = async () => {
     try {
@@ -60,11 +97,16 @@ function Dashboard() {
       // Calculate user statistics
       const userStats = calculateUserStats(myResults.data);
 
+      // Calculate real results statistics from finished games
+      const realResultsStats = calculateRealResults(finishedGames);
+
       // Prepare mini ranking (top 3 + current user if not in top 3)
       const miniRanking = prepareMiniRanking(ranking, user.username);
 
       setStats({
         ...userStats,
+        user,
+        realResultsStats,
         miniRanking,
         upcomingGames: upcomingGamesWithPredictions.slice(0, 5),
         recentGames: finishedGamesWithPredictions.slice(0, 5)
@@ -81,8 +123,7 @@ function Dashboard() {
   const calculateUserStats = (results) => {
     if (!results || results.length === 0) {
       return {
-        mostFrequentPrediction: null,
-        mostFrequentCount: 0,
+        topPredictions: [],
         exactMatches: 0,
         partialMatches: 0,
         noMatches: 0,
@@ -118,20 +159,50 @@ function Dashboard() {
       }
     });
 
-    // Find most frequent prediction
-    const maxCount = Math.max(...Object.values(predictionCounts));
-    const mostFrequent = Object.keys(predictionCounts).find(
-      key => predictionCounts[key] === maxCount
-    );
+    // Get TOP 3 most frequent predictions
+    const topPredictions = Object.entries(predictionCounts)
+      .sort((a, b) => b[1] - a[1]) // Sort by count descending
+      .slice(0, 3) // Take top 3
+      .map(([prediction, count]) => ({ prediction, count }));
 
     return {
-      mostFrequentPrediction: mostFrequent || null,
-      mostFrequentCount: maxCount,
+      topPredictions,
       exactMatches,
       partialMatches,
       noMatches,
       almostPerfect
     };
+  };
+
+  const calculateRealResults = (finishedGames) => {
+    if (!finishedGames || finishedGames.length === 0) {
+      return { topRealResults: [] };
+    }
+
+    // Count real result frequencies
+    const resultCounts = {};
+
+    finishedGames.forEach(game => {
+      // Only count games with actual results
+      if (game.homeScore !== null && game.homeScore !== undefined &&
+          game.awayScore !== null && game.awayScore !== undefined) {
+        const resultKey = `${game.homeScore}:${game.awayScore}`;
+        resultCounts[resultKey] = (resultCounts[resultKey] || 0) + 1;
+      }
+    });
+
+    console.log('🔍 Real results counted:', resultCounts);
+    console.log('📊 Total finished games analyzed:', finishedGames.length);
+
+    // Get TOP 3 most frequent real results
+    const topRealResults = Object.entries(resultCounts)
+      .sort((a, b) => b[1] - a[1]) // Sort by count descending
+      .slice(0, 3) // Take top 3
+      .map(([result, count]) => ({ result, count }));
+
+    console.log('🏆 TOP 3 real results:', topRealResults);
+
+    return { topRealResults };
   };
 
   const prepareMiniRanking = (ranking, currentUsername) => {
@@ -219,49 +290,114 @@ function Dashboard() {
     <div className="content-container" style={{ height: 'calc(100vh - 150px)', overflowY: 'auto', paddingBottom: '2rem' }}>
       {/* Content Row - Statystyki */}
       <Row className="mt-4">
-        {/* Twoje wyniki */}
+        {/* Twoje wyniki - Lewa kolumna */}
         <Col xl={6} md={6} className="mb-4">
           <Card className="border-start border-primary border-4 shadow h-100">
             <Card.Body className="py-3">
               <div className="text-xs fw-bold text-primary text-uppercase mb-3">
-                Twoje wyniki <span className="text-danger">- TO DO !!!!</span>
+                🎯 {t('yourStyleOfPlay')}
               </div>
 
-              {/* Najczęściej typowany wynik */}
-              {stats.mostFrequentPrediction && (
-                <div className="mb-3">
-                  <div className="text-md fw-bold text-secondary mb-1">
-                    Najczęściej typujesz
-                  </div>
-                  <div>
-                    <strong className="fs-5">{stats.mostFrequentPrediction}</strong>
-                    <strong className="text-muted ms-2">
-                      x{stats.mostFrequentCount}
-                    </strong>
-                  </div>
-                </div>
-              )}
-
-              {/* Statystyki punktowe */}
-              <div className="mb-2">
-                <div className="text-md fw-bold text-secondary mb-2">
-                  Efekty typowania:
-                </div>
+              {/* Punktacja */}
+              <div className="mb-3">
                 <div className="fw-bold" style={{ fontSize: '0.875rem', color: '#28a745' }}>
-                  {stats.exactMatches} x 3 pkt
+                  {stats.exactMatches} x 3 {t('points')}
                 </div>
                 <div className="text-warning fw-bold" style={{ fontSize: '0.875rem' }}>
-                  {stats.partialMatches} x 1 pkt
+                  {stats.partialMatches} x 1 {t('points')}
                 </div>
                 <div className="text-danger fw-bold" style={{ fontSize: '0.875rem' }}>
-                  {stats.noMatches} x 0 pkt
+                  {stats.noMatches} x 0 {t('points')}
                 </div>
+
+                {/* Kreska i podsumowanie */}
+                <div
+                  className="my-2"
+                  style={{
+                    borderTop: '2px solid #e3e6f0',
+                    width: '100%'
+                  }}
+                />
+                <div className="fw-bold text-primary" style={{ fontSize: '1.1rem' }}>
+                  {stats.exactMatches * 3 + stats.partialMatches * 1} {t('points')}
+                </div>
+
                 {stats.almostPerfect > 0 && (
                   <div className="text-info fw-bold mt-2" style={{ fontSize: '0.875rem' }}>
-                    😫 {stats.almostPerfect} x prawie!
+                    😫 {stats.almostPerfect} x {t('almostPerfect')}
                   </div>
                 )}
               </div>
+
+              <Row className="justify-content-center">
+                {/* Co typujesz */}
+                <Col md={5} className="mb-3">
+                  <div className="text-md fw-bold text-secondary mb-2">
+                    {t('whatYouPredict')}
+                  </div>
+                  {stats.topPredictions && stats.topPredictions.length > 0 ? (
+                    stats.topPredictions.map((item, index) => (
+                      <div
+                        key={index}
+                        className="d-flex align-items-center mb-2"
+                        style={{ fontSize: '0.95rem' }}
+                      >
+                        <span
+                          className="me-2 fw-bold"
+                          style={{
+                            color: index === 0 ? '#f6c23e' : index === 1 ? '#858796' : '#4e73df',
+                            fontSize: '1rem'
+                          }}
+                        >
+                          #{index + 1}
+                        </span>
+                        <strong className="fs-5 me-2">{item.prediction}</strong>
+                        <strong className="text-muted">
+                          ({item.count}x)
+                        </strong>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted mb-0" style={{ fontSize: '0.875rem' }}>
+                      {t('noPredictions')}
+                    </p>
+                  )}
+                </Col>
+
+                {/* Rzeczywiste wyniki */}
+                <Col md={5} className="mb-3">
+                  <div className="text-md fw-bold text-secondary mb-2">
+                    {t('matchResults')}
+                  </div>
+                  {stats.realResultsStats && stats.realResultsStats.topRealResults && stats.realResultsStats.topRealResults.length > 0 ? (
+                    stats.realResultsStats.topRealResults.map((item, index) => (
+                      <div
+                        key={index}
+                        className="d-flex align-items-center mb-2"
+                        style={{ fontSize: '0.95rem' }}
+                      >
+                        <span
+                          className="me-2 fw-bold"
+                          style={{
+                            color: index === 0 ? '#f6c23e' : index === 1 ? '#858796' : '#4e73df',
+                            fontSize: '1rem'
+                          }}
+                        >
+                          #{index + 1}
+                        </span>
+                        <strong className="fs-5 me-2">{item.result}</strong>
+                        <strong className="text-muted">
+                          ({item.count}x)
+                        </strong>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted mb-0" style={{ fontSize: '0.875rem' }}>
+                      {t('noData')}
+                    </p>
+                  )}
+                </Col>
+              </Row>
             </Card.Body>
           </Card>
         </Col>
@@ -271,7 +407,7 @@ function Dashboard() {
           <Card className="border-start border-warning border-4 shadow h-100">
             <Card.Body className="py-3">
               <div className="text-xs fw-bold text-warning text-uppercase mb-2">
-                🏆 Mini Ranking
+                🏆 {t('miniRanking')}
               </div>
               {stats.miniRanking && stats.miniRanking.length > 0 ? (
                 <>
@@ -329,25 +465,28 @@ function Dashboard() {
       </Row>
 
       {/* Content Row - Mecze */}
-      <Row className="mb-4">
+      <Row className="mb-4" style={{ display: 'flex', alignItems: 'stretch' }}>
         {/* Najbliższe mecze */}
         {stats.upcomingGames && stats.upcomingGames.length > 0 && (
-          <Col xl={6} md={6} className="mb-4">
-            <Card className="border-start border-info border-4 shadow h-100">
-              <Card.Body>
+          <Col xl={6} md={6} className="mb-4" style={{ display: 'flex', flexDirection: 'column' }}>
+            <Card className="border-start border-info border-4 shadow" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Card.Body style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div className="text-xs fw-bold text-info text-uppercase mb-2">
-                  📅 Najbliższe mecze
+                  📅 {t('upcomingMatches')}
                 </div>
-            <div className="games-list" style={{ fontSize: '0.9rem' }}>
-              {stats.upcomingGames.map((game) => (
+            <div className="games-list" style={{ fontSize: '0.9rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {stats.upcomingGames.map((game, index) => (
                 <div
                   key={game.id}
-                  className="game-item"
+                  className="game-item upcoming-game-item"
                   style={{
                     padding: '8px',
                     borderRadius: '4px',
                     marginBottom: '8px',
-                    borderBottom: '1px solid #e3e6f0'
+                    borderBottom: index < stats.upcomingGames.length - 1 ? '1px solid #e3e6f0' : 'none',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
                   }}
                 >
                   {/* Data */}
@@ -417,7 +556,7 @@ function Dashboard() {
                         variant="outline-primary"
                         size="sm"
                         style={{ minWidth: '38px', padding: '4px 8px' }}
-                        title="Typuj"
+                        title={t('predict')}
                       >
                         <i className="fas fa-plus"></i>
                       </Button>
@@ -433,23 +572,26 @@ function Dashboard() {
 
         {/* Ostatnie mecze */}
         {stats.recentGames && stats.recentGames.length > 0 && (
-          <Col xl={6} md={6} className="mb-4">
-            <Card className="border-start border-warning border-4 shadow h-100">
-              <Card.Body>
+          <Col xl={6} md={6} className="mb-4" style={{ display: 'flex', flexDirection: 'column' }}>
+            <Card className="border-start border-warning border-4 shadow" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+              <Card.Body style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                 <div className="text-xs fw-bold text-warning text-uppercase mb-2">
-                  ⏱️ Ostatnie mecze
+                  ⏱️ {t('recentMatches')}
                 </div>
-            <div className="games-list" style={{ fontSize: '0.9rem' }}>
-              {stats.recentGames.map((game) => (
+            <div className="games-list" style={{ fontSize: '0.9rem', flex: 1, display: 'flex', flexDirection: 'column' }}>
+              {stats.recentGames.map((game, index) => (
                 <div
                   key={game.id}
-                  className="game-item"
+                  className="game-item recent-game-item"
                   style={{
                     padding: '8px',
                     borderRadius: '4px',
                     marginBottom: '8px',
-                    borderBottom: '1px solid #e3e6f0',
-                    cursor: 'pointer'
+                    borderBottom: index < stats.recentGames.length - 1 ? '1px solid #e3e6f0' : 'none',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'space-between'
                   }}
                   onClick={() => navigate(`/results/${game.id}`)}
                 >
@@ -547,9 +689,9 @@ function Dashboard() {
       </Row>
 
       {/* Wykresy */}
-      <Row>
+      <Row className="mb-4">
         <Col xs={12}>
-          <Card className="shadow mb-4">
+          <Card className="shadow">
             <Card.Header className="py-3">
               <h6 className="m-0 fw-bold text-danger">
                 HARDCODED !!! TO DO
@@ -557,30 +699,16 @@ function Dashboard() {
             </Card.Header>
             <Card.Body>
               <div className="chart-area">
-                <RankingChart />
+                <RankingChart currentUser={stats?.user} />
               </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      <Row>
+      <Row className="mb-4">
         <Col xs={12}>
-          <Card className="shadow mb-4">
-            <Card.Header className="py-3">
-              <h6 className="m-0 fw-bold text-success">
-                Porównanie: Remisy vs Zwycięstwa
-              </h6>
-            </Card.Header>
-            <Card.Body>
-              <div
-                className="chart-pie pt-4 pb-2 d-flex justify-content-center align-items-center"
-                style={{ height: '300px', width: '100%', position: 'relative' }}
-              >
-                <NestedDonutChart />
-              </div>
-            </Card.Body>
-          </Card>
+          <PredictionPatternChart />
         </Col>
       </Row>
     </div>

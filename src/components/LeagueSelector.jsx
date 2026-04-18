@@ -1,9 +1,13 @@
 import { useState } from 'react';
 import { useLeague } from '../contexts/LeagueContext';
+import { useLanguage } from '../contexts/LanguageContext';
+import { useTranslation } from '../i18n/translations';
 import './LeagueSelector.css';
 
 const LeagueSelector = () => {
   const { selectedLeague, myLeagues, leagueRankings, selectLeague, loading } = useLeague();
+  const { language } = useLanguage();
+  const t = useTranslation(language);
   const [isOpen, setIsOpen] = useState(false);
 
   // 🔄 Pokaż loading state podczas ładowania
@@ -13,7 +17,7 @@ const LeagueSelector = () => {
         <button className="league-selector-button" disabled>
           <span className="league-icon">⏳</span>
           <div className="league-button-info">
-            <span className="league-name">Ładowanie lig...</span>
+            <span className="league-name">{t('loadingLeagues')}</span>
           </div>
         </button>
       </div>
@@ -30,7 +34,7 @@ const LeagueSelector = () => {
         >
           <span className="league-icon">➕</span>
           <div className="league-button-info">
-            <span className="league-name">Dołącz do ligi</span>
+            <span className="league-name">{t('joinLeague')}</span>
           </div>
         </button>
       </div>
@@ -48,36 +52,40 @@ const LeagueSelector = () => {
         <span className="league-icon">🏆</span>
         <div className="league-button-info">
           <span className="league-name">{selectedLeague.name}</span>
-          {selectedRanking && selectedRanking.totalUsers > 0 && (
-            <span className="league-stats">
-              {selectedRanking.position}/{selectedRanking.totalUsers} - {selectedRanking.points} pkt
-            </span>
-          )}
         </div>
         <span className="dropdown-arrow">{isOpen ? '▲' : '▼'}</span>
       </button>
 
       {isOpen && (
         <div className="league-dropdown">
-          {myLeagues.map((league) => (
-            <button
-              key={league.id}
-              className={`league-option ${league.id === selectedLeague.id ? 'selected' : ''}`}
-              onClick={() => {
-                selectLeague(league);
-                setIsOpen(false);
-              }}
-            >
-              <span className="league-icon">🏆</span>
-              <div className="league-info">
-                <span className="league-name">{league.name}</span>
-                <span className="league-members">{league.memberCount} członków</span>
-              </div>
-              {league.id === selectedLeague.id && (
-                <span className="check-icon">✓</span>
-              )}
-            </button>
-          ))}
+          {myLeagues.map((league) => {
+            const leagueRanking = leagueRankings[league.id];
+            return (
+              <button
+                key={league.id}
+                className={`league-option ${league.id === selectedLeague.id ? 'selected' : ''}`}
+                onClick={() => {
+                  selectLeague(league);
+                  setIsOpen(false);
+                }}
+              >
+                <span className="league-icon">🏆</span>
+                <div className="league-info">
+                  <span className="league-name">{league.name}</span>
+                  {leagueRanking && leagueRanking.totalUsers > 0 ? (
+                    <span className="league-members">
+                      {leagueRanking.position}/{leagueRanking.totalUsers} - {leagueRanking.points} {t('points')}
+                    </span>
+                  ) : (
+                    <span className="league-members">{league.memberCount} {t('members')}</span>
+                  )}
+                </div>
+                {league.id === selectedLeague.id && (
+                  <span className="check-icon">✓</span>
+                )}
+              </button>
+            );
+          })}
         </div>
       )}
 
