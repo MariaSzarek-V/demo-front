@@ -59,7 +59,7 @@ function Ranking() {
     if (index === 0) return { color: '#FFD700', fontWeight: 'bold' }; // złoty
     if (index === 1) return { color: '#C0C0C0', fontWeight: 'bold' }; // srebrny
     if (index === 2) return { color: '#CD7F32', fontWeight: 'bold' }; // brązowy
-    return { color: '#000000', fontWeight: 'bold' }; // czarny
+    return { color: '#000000', fontWeight: 'normal' }; // czarny, normalny
   };
 
   const getInitials = (username) => {
@@ -69,6 +69,11 @@ function Ranking() {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
     return username.substring(0, 2).toUpperCase();
+  };
+
+  const capitalizeFirstLetter = (username) => {
+    if (!username) return '';
+    return username.charAt(0).toUpperCase() + username.slice(1);
   };
 
   const getAvatarBackgroundColor = (index) => {
@@ -108,7 +113,9 @@ function Ranking() {
                     }
                   }}
                   style={{
-                    borderBottom: index < ranking.length - 1 ? '1px solid #e3e6f0' : 'none',
+                    borderBottom: index === 2 ? '3px solid #e3e6f0' : (index < ranking.length - 1 ? '1px solid #e3e6f0' : 'none'),
+                    paddingBottom: index === 2 ? '12px' : '8px',
+                    marginBottom: index === 2 ? '8px' : '0',
                     backgroundColor: isCurrentUser ? 'rgba(8, 145, 178, 0.08)' : 'transparent',
                     fontWeight: isCurrentUser ? 'bold' : 'normal',
                     cursor: !isCurrentUser && row.userId ? 'pointer' : 'default',
@@ -130,17 +137,14 @@ function Ranking() {
                   {/* Pozycja */}
                   <span
                     className="d-flex align-items-center"
-                    style={{ minWidth: '50px', fontSize: '0.95rem', ...getPositionStyle(index), gap: '4px' }}
+                    style={{ minWidth: '35px', fontSize: '0.95rem', ...getPositionStyle(index) }}
                   >
                     {row.position}.
-                    {index < 3 && (
-                      <i className="fas fa-trophy" style={{ fontSize: '1rem' }}></i>
-                    )}
                   </span>
 
                   {/* Avatar */}
                   <div
-                    className="d-flex align-items-center justify-content-center rounded-circle me-2"
+                    className="d-flex align-items-center justify-content-center rounded-circle"
                     style={{
                       width: '32px',
                       height: '32px',
@@ -150,7 +154,9 @@ function Ranking() {
                       fontSize: '0.75rem',
                       flexShrink: 0,
                       overflow: 'hidden',
-                      border: index < 3 ? `2px solid ${getAvatarBackgroundColor(index)}` : '1px solid #e3e6f0'
+                      border: index < 3 ? `2px solid ${getAvatarBackgroundColor(index)}` : '1px solid #e3e6f0',
+                      marginLeft: '4px',
+                      marginRight: '8px'
                     }}
                   >
                     {row.avatarUrl ? (
@@ -174,16 +180,17 @@ function Ranking() {
                       fontSize: '0.9rem',
                       flex: 1,
                       minWidth: 0,
-                      color: '#000000'
+                      color: '#000000',
+                      fontWeight: index < 3 ? 'bold' : 'normal'
                     }}
                   >
-                    {row.username}
+                    {capitalizeFirstLetter(row.username)}
                   </span>
 
                   {/* Zmiana pozycji - stała szerokość */}
                   <div
                     className="d-flex align-items-center justify-content-end"
-                    style={{ width: '50px', flexShrink: 0 }}
+                    style={{ width: '50px', flexShrink: 0, fontSize: '0.9rem' }}
                   >
                     {row.positionChange !== null && row.positionChange !== 0 && (
                       <>
@@ -193,14 +200,15 @@ function Ranking() {
                           }`}
                           style={{
                             color: row.positionChange > 0 ? '#1cc88a' : '#e74a3b',
-                            fontSize: '0.85rem'
+                            fontSize: '0.9rem'
                           }}
                         ></i>
                         <span
                           className="ms-1"
                           style={{
                             color: row.positionChange > 0 ? '#1cc88a' : '#e74a3b',
-                            fontSize: '0.8rem'
+                            fontSize: '0.9rem',
+                            fontWeight: 'inherit'
                           }}
                         >
                           {Math.abs(row.positionChange)}
@@ -216,7 +224,8 @@ function Ranking() {
                       width: '70px',
                       textAlign: 'right',
                       flexShrink: 0,
-                      color: '#000000'
+                      color: '#000000',
+                      fontWeight: 'inherit'
                     }}
                   >
                     {row.totalPoints} pkt

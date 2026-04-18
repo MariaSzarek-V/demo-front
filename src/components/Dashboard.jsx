@@ -492,7 +492,20 @@ function Dashboard() {
                     borderBottom: index < stats.upcomingGames.length - 1 ? '1px solid #e3e6f0' : 'none',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onClick={() => navigate(`/games`)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.05)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.boxShadow = 'none';
                   }}
                 >
                   {/* Data */}
@@ -599,9 +612,20 @@ function Dashboard() {
                     cursor: 'pointer',
                     display: 'flex',
                     flexDirection: 'column',
-                    justifyContent: 'space-between'
+                    justifyContent: 'space-between',
+                    transition: 'all 0.2s ease'
                   }}
                   onClick={() => navigate(`/results/${game.id}`)}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.02)';
+                    e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.05)';
+                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
                   {/* Data */}
                   <div className="mb-2">

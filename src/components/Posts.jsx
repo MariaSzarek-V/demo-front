@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Container, Card, Form, Button, Modal, Alert } from 'react-bootstrap';
 import EmojiPicker from 'emoji-picker-react';
+import GifPicker from './GifPicker';
 import { postApi, commentApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
@@ -22,7 +23,18 @@ function Posts() {
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostImageUrl, setNewPostImageUrl] = useState('');
+  const [newPostGifUrl, setNewPostGifUrl] = useState('');
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPickerForPost, setShowEmojiPickerForPost] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  // Edit post
+  const [editingPost, setEditingPost] = useState(null);
+  const [showEditPostModal, setShowEditPostModal] = useState(false);
+  const [editPostTitle, setEditPostTitle] = useState('');
+  const [editPostContent, setEditPostContent] = useState('');
+  const [editPostImageUrl, setEditPostImageUrl] = useState('');
+  const [editPostGifUrl, setEditPostGifUrl] = useState('');
 
   // Reactions - posts
   const [showReactionPicker, setShowReactionPicker] = useState(null);
@@ -161,6 +173,7 @@ function Posts() {
         title: newPostTitle.trim(),
         content: newPostContent.trim(),
         imageUrl: newPostImageUrl.trim() || null,
+        gifUrl: newPostGifUrl.trim() || null,
         leagueId: selectedLeague?.id
       };
 
@@ -173,12 +186,73 @@ function Posts() {
       setNewPostTitle('');
       setNewPostContent('');
       setNewPostImageUrl('');
+      setNewPostGifUrl('');
       setShowNewPostModal(false);
     } catch (err) {
       console.error('Error creating post:', err);
       alert('Nie udało się utworzyć posta');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEditPost = (post) => {
+    setEditingPost(post);
+    setEditPostTitle(post.title);
+    setEditPostContent(post.content);
+    setEditPostImageUrl(post.imageUrl || '');
+    setEditPostGifUrl(post.gifUrl || '');
+    setShowEditPostModal(true);
+  };
+
+  const handleUpdatePost = async (e) => {
+    e.preventDefault();
+
+    if (!editPostTitle.trim() || !editPostContent.trim()) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const postData = {
+        title: editPostTitle.trim(),
+        content: editPostContent.trim(),
+        imageUrl: editPostImageUrl.trim() || null,
+        gifUrl: editPostGifUrl.trim() || null,
+        leagueId: selectedLeague?.id
+      };
+
+      await postApi.updatePost(editingPost.id, postData);
+
+      // Reload posts
+      await loadPosts();
+
+      // Reset form and close modal
+      setEditingPost(null);
+      setEditPostTitle('');
+      setEditPostContent('');
+      setEditPostImageUrl('');
+      setEditPostGifUrl('');
+      setShowEditPostModal(false);
+    } catch (err) {
+      console.error('Error updating post:', err);
+      alert('Nie udało się zaktualizować posta');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeletePost = async (postId) => {
+    if (!window.confirm('Czy na pewno chcesz usunąć ten post?')) {
+      return;
+    }
+
+    try {
+      await postApi.deletePost(postId);
+      await loadPosts();
+    } catch (err) {
+      console.error('Error deleting post:', err);
+      alert('Nie udało się usunąć posta');
     }
   };
 
@@ -346,9 +420,8 @@ function Posts() {
   }
 
   return (
-    <Container fluid className="py-4 content-container-narrow">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2>Posty</h2>
+    <Container fluid className="content-container content-container-narrow">
+      <div className="d-flex justify-content-end align-items-center mb-4">
         <Button variant="primary" onClick={() => setShowNewPostModal(true)}>
           <i className="fas fa-plus me-2"></i>
           Nowy post
@@ -363,7 +436,7 @@ function Posts() {
 
       <div className="posts-list">
         {posts.map(post => (
-          <Card key={post.id} className="mb-3 shadow" style={{ backgroundColor: '#f8f9fc' }}>
+          <Card key={post.id} className="border-start border-info border-4 mb-3 shadow" style={{ backgroundColor: '#f8f9fc' }}>
             <Card.Body>
               <div className="d-flex align-items-center mb-2">
                 <div className="me-2">
@@ -386,8 +459,47 @@ function Posts() {
                 </div>
                 <div className="flex-grow-1">
                   <div className="fw-bold">{post.username}</div>
-                  <small className="text-muted">{formatDate(post.createdAt)}</small>
+                  <small className="text-muted">
+                    {formatDate(post.createdAt)}
+                    {post.updatedAt && (
+                      <span className="ms-1" title={`Edytowano: ${formatDate(post.updatedAt)}`}>
+                        (edytowano)
+                      </span>
+                    )}
+                  </small>
                 </div>
+                {user?.username === post.username && (
+                  <div className="d-flex gap-2">
+                    <button
+                      onClick={() => handleEditPost(post)}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        fontSize: '1rem',
+                        color: '#4e73df'
+                      }}
+                      title="Edytuj post"
+                    >
+                      <i className="fas fa-edit"></i>
+                    </button>
+                    <button
+                      onClick={() => handleDeletePost(post.id)}
+                      style={{
+                        backgroundColor: 'transparent',
+                        border: 'none',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        fontSize: '1rem',
+                        color: '#e74a3b'
+                      }}
+                      title="Usuń post"
+                    >
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </div>
+                )}
               </div>
 
               <h5 className="mb-2"><strong>{post.title}</strong></h5>
@@ -397,6 +509,15 @@ function Posts() {
                 <img
                   src={post.imageUrl}
                   alt="Post"
+                  className="img-fluid rounded mb-2"
+                  style={{ maxHeight: '400px' }}
+                />
+              )}
+
+              {post.gifUrl && (
+                <img
+                  src={post.gifUrl}
+                  alt="GIF"
                   className="img-fluid rounded mb-2"
                   style={{ maxHeight: '400px' }}
                 />
@@ -951,6 +1072,62 @@ function Posts() {
               />
             </Form.Group>
 
+            {/* Emoji and GIF Buttons */}
+            <div className="d-flex gap-2 mb-3">
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={() => setShowEmojiPickerForPost(!showEmojiPickerForPost)}
+                type="button"
+              >
+                😀 Emoji
+              </Button>
+              <Button
+                variant="outline-secondary"
+                size="sm"
+                onClick={() => setShowGifPicker(true)}
+                type="button"
+              >
+                GIF
+              </Button>
+              {newPostGifUrl && (
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={() => setNewPostGifUrl('')}
+                  type="button"
+                >
+                  Usuń GIF
+                </Button>
+              )}
+            </div>
+
+            {/* Emoji Picker for Post Content */}
+            {showEmojiPickerForPost && (
+              <div className="mb-3">
+                <EmojiPicker
+                  onEmojiClick={(emojiObject) => {
+                    setNewPostContent(prev => prev + emojiObject.emoji);
+                    setShowEmojiPickerForPost(false);
+                  }}
+                  width="100%"
+                  height="350px"
+                />
+              </div>
+            )}
+
+            {/* GIF Preview */}
+            {newPostGifUrl && (
+              <div className="mb-3">
+                <img
+                  src={newPostGifUrl}
+                  alt="Selected GIF"
+                  className="img-fluid rounded"
+                  style={{ maxHeight: '300px' }}
+                />
+              </div>
+            )}
+
             <div className="d-flex justify-content-end gap-2">
               <Button variant="secondary" onClick={() => setShowNewPostModal(false)}>
                 Anuluj
@@ -966,6 +1143,88 @@ function Posts() {
           </Form>
         </Modal.Body>
       </Modal>
+
+      {/* Edit Post Modal */}
+      <Modal show={showEditPostModal} onHide={() => setShowEditPostModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>Edytuj post</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form onSubmit={handleUpdatePost}>
+            <Form.Group className="mb-3">
+              <Form.Label>Tytuł *</Form.Label>
+              <Form.Control
+                type="text"
+                value={editPostTitle}
+                onChange={(e) => setEditPostTitle(e.target.value)}
+                placeholder="Wpisz tytuł posta..."
+                required
+                maxLength={255}
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Treść *</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={6}
+                value={editPostContent}
+                onChange={(e) => setEditPostContent(e.target.value)}
+                placeholder="Wpisz treść posta..."
+                required
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>URL obrazka (opcjonalnie)</Form.Label>
+              <Form.Control
+                type="url"
+                value={editPostImageUrl}
+                onChange={(e) => setEditPostImageUrl(e.target.value)}
+                placeholder="https://..."
+              />
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label>URL GIFa (opcjonalnie)</Form.Label>
+              <Form.Control
+                type="url"
+                value={editPostGifUrl}
+                onChange={(e) => setEditPostGifUrl(e.target.value)}
+                placeholder="https://..."
+              />
+            </Form.Group>
+
+            <div className="d-flex justify-content-end gap-2">
+              <Button variant="secondary" onClick={() => setShowEditPostModal(false)}>
+                Anuluj
+              </Button>
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={submitting || !editPostTitle.trim() || !editPostContent.trim()}
+              >
+                {submitting ? 'Zapisywanie...' : 'Zapisz zmiany'}
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
+
+      {/* GIF Picker Modal */}
+      {showGifPicker && (
+        <GifPicker
+          onSelectGif={(gifUrl) => {
+            if (editingPost) {
+              setEditPostGifUrl(gifUrl);
+            } else {
+              setNewPostGifUrl(gifUrl);
+            }
+            setShowGifPicker(false);
+          }}
+          onClose={() => setShowGifPicker(false)}
+        />
+      )}
 
 {/* Post Reactions Modal */}
       {showReactionsModal && (

@@ -133,6 +133,11 @@ function Compare() {
     return username.substring(0, 2).toUpperCase();
   };
 
+  const capitalizeFirstLetter = (username) => {
+    if (!username) return '';
+    return username.charAt(0).toUpperCase() + username.slice(1);
+  };
+
   const getPointsBadgeColor = (points) => {
     if (points === 3) return 'success';
     if (points === 1) return 'warning';
@@ -148,12 +153,13 @@ function Compare() {
   return (
     <Container fluid className="px-2 px-md-4 px-lg-5 content-container-narrow">
       {/* Comparison Stats Header */}
-      <Card className="shadow mb-3">
-        <Card.Body className="py-3">
-          <div className="row text-center">
-            {/* Current User Stats */}
-            <div className="col-5">
-              <h4 className="mb-1" style={{ fontWeight: '900' }}>{currentUser.username}</h4>
+      <div className="row mb-3">
+        {/* Current User Card */}
+        <div className="col-12 col-md-6 mb-3 mb-md-0">
+          <Card className="border-start border-primary border-4 shadow h-100">
+            <Card.Body className="py-3">
+              <div className="text-center">
+                <h4 className="mb-1" style={{ fontWeight: '900' }}>{capitalizeFirstLetter(currentUser.username)}</h4>
               <div className="text-muted d-block mb-2 fw-bold" style={{ fontSize: '1rem' }}>#{currentUser.position || '-'}</div>
               <div className="mb-2 d-flex flex-column align-items-center" style={{ borderBottom: '2px solid #ddd', paddingBottom: '8px' }}>
                 <div className="fw-bold" style={{ fontSize: '0.875rem', color: '#28a745' }}>
@@ -166,41 +172,43 @@ function Compare() {
                   {commonGames.filter(g => (g.currentUserPrediction?.points || 0) === 0).length} x 0 pkt
                 </div>
               </div>
-              <div className="text-center text-muted fw-bold" style={{ fontSize: '0.875rem', paddingTop: '4px' }}>
-                {currentUserTotalPoints} pkt
+                <div className="text-center text-muted fw-bold" style={{ fontSize: '0.875rem', paddingTop: '4px' }}>
+                  {currentUserTotalPoints} pkt
+                </div>
               </div>
-            </div>
+            </Card.Body>
+          </Card>
+        </div>
 
-            {/* VS Separator */}
-            <div className="col-2 d-flex align-items-start justify-content-center" style={{ paddingTop: '0.35rem' }}>
-              <h3 className="mb-0" style={{ fontWeight: '700' }}>X</h3>
-            </div>
-
-            {/* Compared User Stats */}
-            <div className="col-5">
-              <h4 className="mb-1" style={{ fontWeight: '900' }}>{comparedUser.username}</h4>
-              <div className="text-muted d-block mb-2 fw-bold" style={{ fontSize: '1rem' }}>#{comparedUser.position || '-'}</div>
-              <div className="mb-2 d-flex flex-column align-items-center" style={{ borderBottom: '2px solid #ddd', paddingBottom: '8px' }}>
-                <div className="fw-bold" style={{ fontSize: '0.875rem', color: '#28a745' }}>
-                  {commonGames.filter(g => (g.comparedUserPrediction?.points || 0) === 3).length} x 3 pkt
+        {/* Compared User Card */}
+        <div className="col-12 col-md-6">
+          <Card className="border-start border-warning border-4 shadow h-100">
+            <Card.Body className="py-3">
+              <div className="text-center">
+                <h4 className="mb-1" style={{ fontWeight: '900' }}>{capitalizeFirstLetter(comparedUser.username)}</h4>
+                <div className="text-muted d-block mb-2 fw-bold" style={{ fontSize: '1rem' }}>#{comparedUser.position || '-'}</div>
+                <div className="mb-2 d-flex flex-column align-items-center" style={{ borderBottom: '2px solid #ddd', paddingBottom: '8px' }}>
+                  <div className="fw-bold" style={{ fontSize: '0.875rem', color: '#28a745' }}>
+                    {commonGames.filter(g => (g.comparedUserPrediction?.points || 0) === 3).length} x 3 pkt
+                  </div>
+                  <div className="text-warning fw-bold" style={{ fontSize: '0.875rem' }}>
+                    {commonGames.filter(g => (g.comparedUserPrediction?.points || 0) === 1).length} x 1 pkt
+                  </div>
+                  <div className="text-danger fw-bold" style={{ fontSize: '0.875rem' }}>
+                    {commonGames.filter(g => (g.comparedUserPrediction?.points || 0) === 0).length} x 0 pkt
+                  </div>
                 </div>
-                <div className="text-warning fw-bold" style={{ fontSize: '0.875rem' }}>
-                  {commonGames.filter(g => (g.comparedUserPrediction?.points || 0) === 1).length} x 1 pkt
-                </div>
-                <div className="text-danger fw-bold" style={{ fontSize: '0.875rem' }}>
-                  {commonGames.filter(g => (g.comparedUserPrediction?.points || 0) === 0).length} x 0 pkt
+                <div className="text-center text-muted fw-bold" style={{ fontSize: '0.875rem', paddingTop: '4px' }}>
+                  {comparedUserTotalPoints} pkt
                 </div>
               </div>
-              <div className="text-center text-muted fw-bold" style={{ fontSize: '0.875rem', paddingTop: '4px' }}>
-                {comparedUserTotalPoints} pkt
-              </div>
-            </div>
-          </div>
-        </Card.Body>
-      </Card>
+            </Card.Body>
+          </Card>
+        </div>
+      </div>
 
       {/* Games Comparison Table */}
-      <Card className="shadow" style={{ borderRadius: '0.375rem', overflow: 'hidden' }}>
+      <Card className="border-start border-success border-4 shadow" style={{ borderRadius: '0.375rem', overflow: 'hidden' }}>
         <Card.Body className="p-0">
           <div className="table-responsive">
             <Table hover className="mb-0">
@@ -244,9 +252,11 @@ function Compare() {
                           </small>
                           <div className="d-flex align-items-center justify-content-center gap-1">
                             <strong style={{ flex: '1', textAlign: 'right' }}>{game.homeTeam}</strong>
+                            <span className={`fi fi-${game.homeCountryCode?.toLowerCase()}`} style={{ flexShrink: 0 }}></span>
                             <strong className="text-primary" style={{ fontSize: '1.1rem', minWidth: '50px' }}>
                               {game.actualHomeScore} : {game.actualAwayScore}
                             </strong>
+                            <span className={`fi fi-${game.awayCountryCode?.toLowerCase()}`} style={{ flexShrink: 0 }}></span>
                             <strong style={{ flex: '1', textAlign: 'left' }}>{game.awayTeam}</strong>
                           </div>
                         </td>

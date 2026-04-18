@@ -384,7 +384,7 @@ body {
 
 /* Clickable game score for finished games */
 .game-score.text-decoration-none:hover {
-  text-decoration: underline !important;
+  text-decoration: none !important;
   color: #0e7490 !important;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -407,7 +407,7 @@ body {
 .game-item-finished:hover a.game-score {
   transform: scale(1.1) !important;
   color: #0e7490 !important;
-  text-decoration: underline !important;
+  text-decoration: none !important;
 }
 
 /* Target team names - both spans and divs */
@@ -438,9 +438,21 @@ body {
 }
 
 .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-  background-color: #0e7490 !important;
-  border-color: #0e7490 !important;
-  color: white !important;
+  background-color: rgba(8, 145, 178, 0.3) !important;
+  border-color: #0891b2 !important;
+  color: #0891b2 !important;
+}
+
+.btn-outline-primary {
+  background-color: transparent !important;
+  border-color: #0891b2 !important;
+  color: #0891b2 !important;
+}
+
+.btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active {
+  background-color: rgba(8, 145, 178, 0.3) !important;
+  border-color: #0891b2 !important;
+  color: #0891b2 !important;
 }
 
 .btn-info {

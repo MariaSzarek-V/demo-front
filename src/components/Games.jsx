@@ -262,6 +262,9 @@ function Games() {
           variant={filter === 'ALL' ? 'primary' : 'outline-primary'}
           size="sm"
           onClick={() => setFilter('ALL')}
+          style={{
+            opacity: filter === 'ALL' ? '1' : undefined
+          }}
         >
           Wszystkie
         </Button>
@@ -269,6 +272,9 @@ function Games() {
           variant={filter === 'SCHEDULED' ? 'primary' : 'outline-primary'}
           size="sm"
           onClick={() => setFilter('SCHEDULED')}
+          style={{
+            opacity: filter === 'SCHEDULED' ? '1' : undefined
+          }}
         >
           Nadchodzące
         </Button>
@@ -276,6 +282,9 @@ function Games() {
           variant={filter === 'FINISHED' ? 'primary' : 'outline-primary'}
           size="sm"
           onClick={() => setFilter('FINISHED')}
+          style={{
+            opacity: filter === 'FINISHED' ? '1' : undefined
+          }}
         >
           Zakończone
         </Button>
@@ -304,9 +313,28 @@ function Games() {
                     borderRadius: '4px',
                     marginBottom: '8px',
                     borderBottom: '1px solid #e3e6f0',
-                    transition: 'all 0.2s ease'
+                    transition: 'all 0.2s ease',
+                    cursor: 'pointer'
                   }}
-                  onClick={() => game.gameStatus === 'FINISHED' && navigate(`/results/${game.id}`)}
+                  onClick={() => {
+                    if (game.gameStatus === 'FINISHED') {
+                      navigate(`/results/${game.id}`);
+                    } else if (game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate)) {
+                      startEditing(game);
+                    }
+                  }}
+                  onMouseEnter={(e) => {
+                    if (game.gameStatus === 'FINISHED' || (game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate))) {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.05)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    }
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
                 >
                   {/* Data i drużyny */}
                   <div className="mb-2">
@@ -469,7 +497,10 @@ function Games() {
                             variant="success"
                             size="sm"
                             style={{ minWidth: '38px', padding: '4px 8px' }}
-                            onClick={() => savePrediction(game)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              savePrediction(game);
+                            }}
                             title="Zapisz"
                           >
                             <i className="fas fa-check"></i>
@@ -478,7 +509,10 @@ function Games() {
                             variant="secondary"
                             size="sm"
                             style={{ minWidth: '38px', padding: '4px 8px' }}
-                            onClick={cancelEditing}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cancelEditing();
+                            }}
                             title="Anuluj"
                           >
                             <i className="fas fa-times"></i>
@@ -488,7 +522,10 @@ function Games() {
                               variant="danger"
                               size="sm"
                               style={{ minWidth: '38px', padding: '4px 8px' }}
-                              onClick={(e) => handleDeletePrediction(game.prediction.id, e)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePrediction(game.prediction.id, e);
+                              }}
                               title="Usuń"
                             >
                               <i className="fas fa-trash"></i>
