@@ -107,14 +107,15 @@ function Games() {
   };
 
   const startEditing = (game) => {
-    console.log('Starting editing for game:', game.id);
+    const gameId = game.id || game.gameId;
+    console.log('Starting editing for game - id:', game.id, 'gameId:', game.gameId, 'using:', gameId);
     console.log('Full game object:', game);
     console.log('Game prediction:', game.prediction);
 
-    setEditingGameId(game.id);
+    setEditingGameId(gameId);
     setEditedScores({
       ...editedScores,
-      [game.id]: {
+      [gameId]: {
         home: game.prediction?.predictedHomeScore?.toString() || '',
         away: game.prediction?.predictedAwayScore?.toString() || ''
       }
@@ -125,35 +126,50 @@ function Games() {
     setEditingGameId(null);
   };
 
-  const handleScoreChange = (gameId, team, value) => {
-    setEditedScores({
+  const handleScoreChange = (game, team, value) => {
+    const gameId = game.id || game.gameId;
+    console.log('handleScoreChange called:', { gameId, team, value });
+    console.log('Current editedScores:', editedScores);
+    console.log('editedScores[gameId]:', editedScores[gameId]);
+
+    const currentScores = editedScores[gameId] || { home: '', away: '' };
+    const newScores = {
       ...editedScores,
       [gameId]: {
-        ...editedScores[gameId],
+        ...currentScores,
         [team]: value
       }
-    });
+    };
+    console.log('New editedScores:', newScores);
+    setEditedScores(newScores);
   };
 
   const savePrediction = async (game) => {
-    const scores = editedScores[game.id];
-    console.log('Saving prediction for game:', game.id);
+    const gameId = game.id || game.gameId;
+    const scores = editedScores[gameId];
+    console.log('Saving prediction for game:', gameId);
     console.log('Game prediction:', game.prediction);
     console.log('Scores for this game:', scores);
 
-    const homeScore = parseInt(scores?.home, 10);
-    const awayScore = parseInt(scores?.away, 10);
+    // Check if fields are filled
+    if (!scores?.home || !scores?.away) {
+      alert('Proszę wprowadzić oba wyniki (gospodarze i goście)');
+      return;
+    }
+
+    const homeScore = parseInt(scores.home, 10);
+    const awayScore = parseInt(scores.away, 10);
 
     console.log('Parsed scores - home:', homeScore, 'away:', awayScore);
 
     if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
-      alert('Proszę wprowadzić poprawne wyniki');
+      alert('Proszę wprowadzić poprawne wyniki (liczby >= 0)');
       return;
     }
 
     try {
       const predictionData = {
-        gameId: game.id,
+        gameId: gameId,
         predictedHomeScore: homeScore,
         predictedAwayScore: awayScore
       };
@@ -317,6 +333,11 @@ function Games() {
                     cursor: 'pointer'
                   }}
                   onClick={() => {
+                    const gameId = game.id || game.gameId;
+                    // Don't trigger onClick if already in edit mode
+                    if (editingGameId === gameId) {
+                      return;
+                    }
                     if (game.gameStatus === 'FINISHED') {
                       navigate(`/results/${game.id}`);
                     } else if (game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate)) {
@@ -456,7 +477,7 @@ function Games() {
                   {/* Typ i przyciski - nowy wiersz na mobile */}
                   <div className="d-flex align-items-center justify-content-center flex-wrap" style={{ gap: '8px', position: 'relative' }}>
                     {/* Tryb edycji - pokaż inputy */}
-                    {editingGameId === game.id ? (
+                    {editingGameId === (game.id || game.gameId) ? (
                       <div className="d-flex flex-column align-items-center gap-2" style={{ width: '100%' }}>
                         {/* Linia 1: Pola input wyśrodkowane */}
                         <div className="d-flex align-items-center gap-2 justify-content-center">
@@ -465,8 +486,8 @@ function Games() {
                             min="0"
                             className="form-control form-control-sm"
                             style={{ width: '50px', textAlign: 'center', fontFamily: 'monospace', fontWeight: '600' }}
-                            value={editedScores[game.id]?.home || ''}
-                            onChange={(e) => handleScoreChange(game.id, 'home', e.target.value)}
+                            value={editedScores[game.id || game.gameId]?.home || ''}
+                            onChange={(e) => handleScoreChange(game, 'home', e.target.value)}
                             onKeyPress={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault();
@@ -481,8 +502,8 @@ function Games() {
                             min="0"
                             className="form-control form-control-sm"
                             style={{ width: '50px', textAlign: 'center', fontFamily: 'monospace', fontWeight: '600' }}
-                            value={editedScores[game.id]?.away || ''}
-                            onChange={(e) => handleScoreChange(game.id, 'away', e.target.value)}
+                            value={editedScores[game.id || game.gameId]?.away || ''}
+                            onChange={(e) => handleScoreChange(game, 'away', e.target.value)}
                             onKeyPress={(e) => {
                               if (e.key === 'Enter') {
                                 e.preventDefault();

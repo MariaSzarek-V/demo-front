@@ -228,7 +228,23 @@ function Compare() {
                     const rowBg = getRowBackgroundColor(currentPoints, comparedPoints);
 
                     return (
-                      <tr key={game.gameId} style={{ backgroundColor: rowBg }}>
+                      <tr
+                        key={game.gameId}
+                        style={{
+                          backgroundColor: rowBg,
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onClick={() => navigate(`/results/${game.gameId}`)}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'scale(1.01)';
+                          e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'scale(1)';
+                          e.currentTarget.style.boxShadow = 'none';
+                        }}
+                      >
                         {/* Current User Prediction */}
                         <td className="text-center align-middle">
                           <Badge bg={getPointsBadgeColor(currentPoints)} className="mb-2">

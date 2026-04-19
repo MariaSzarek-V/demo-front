@@ -4,6 +4,7 @@ import { Container, Card, Row, Col } from 'react-bootstrap';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { resultsApi } from '../services/api';
+import { getUserColor } from '../utils/userColors';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -377,20 +378,13 @@ function GameResults() {
                   return username.substring(0, 2).toUpperCase();
                 };
 
-                const getAvatarBackgroundColor = (idx) => {
-                  const colors = [
-                    '#FFD700', // gold
-                    '#C0C0C0', // silver
-                    '#CD7F32', // bronze
-                    '#296374', // teal dark
-                    '#4E8D9C', // teal medium
-                    '#629FAD', // teal light
-                    '#FFB33F', // orange
-                    '#C00707', // red
-                    '#858796', // gray
-                    '#5a5c69'  // dark gray
-                  ];
-                  return colors[idx % colors.length];
+                const getAvatarBackgroundColor = (username, idx) => {
+                  // Top 3 get special colors
+                  if (idx === 0) return '#FFD700'; // gold
+                  if (idx === 1) return '#C0C0C0'; // silver
+                  if (idx === 2) return '#CD7F32'; // bronze
+                  // Everyone else gets consistent color based on username
+                  return getUserColor(username);
                 };
 
                 return (
@@ -415,13 +409,13 @@ function GameResults() {
                       style={{
                         width: '32px',
                         height: '32px',
-                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(index),
+                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row.username, index),
                         color: 'white',
                         fontWeight: 'bold',
                         fontSize: '0.75rem',
                         flexShrink: 0,
                         overflow: 'hidden',
-                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(index)}` : '1px solid #e3e6f0'
+                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row.username, index)}` : '1px solid #e3e6f0'
                       }}
                     >
                       {row.avatarUrl ? (
@@ -514,12 +508,13 @@ function GameResults() {
                   return username.substring(0, 2).toUpperCase();
                 };
 
-                const getAvatarBackgroundColor = (idx) => {
-                  const colors = [
-                    '#FFD700', '#C0C0C0', '#CD7F32', '#296374', '#4E8D9C',
-                    '#629FAD', '#FFB33F', '#C00707', '#858796', '#5a5c69'
-                  ];
-                  return colors[idx % colors.length];
+                const getAvatarBackgroundColor = (username, idx) => {
+                  // Top 3 get special colors
+                  if (idx === 0) return '#FFD700'; // gold
+                  if (idx === 1) return '#C0C0C0'; // silver
+                  if (idx === 2) return '#CD7F32'; // bronze
+                  // Everyone else gets consistent color based on username
+                  return getUserColor(username);
                 };
 
                 return (
@@ -544,13 +539,13 @@ function GameResults() {
                       style={{
                         width: '32px',
                         height: '32px',
-                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(index),
+                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row.username, index),
                         color: 'white',
                         fontWeight: 'bold',
                         fontSize: '0.75rem',
                         flexShrink: 0,
                         overflow: 'hidden',
-                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(index)}` : '1px solid #e3e6f0'
+                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row.username, index)}` : '1px solid #e3e6f0'
                       }}
                     >
                       {row.avatarUrl ? (

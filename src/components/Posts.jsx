@@ -434,6 +434,20 @@ function Posts() {
         </Alert>
       )}
 
+      {!error && posts.length === 0 && (
+        <Card className="border-start border-info border-4 shadow" style={{ backgroundColor: '#f8f9fc' }}>
+          <Card.Body className="text-center py-5">
+            <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>💬</div>
+            <h5 className="text-muted mb-3">Brak postów w tej lidze</h5>
+            <p className="text-muted mb-4">Bądź pierwszy! Podziel się swoją opinią lub spostrzeżeniem.</p>
+            <Button variant="primary" onClick={() => setShowNewPostModal(true)}>
+              <i className="fas fa-plus me-2"></i>
+              Napisz pierwszy post
+            </Button>
+          </Card.Body>
+        </Card>
+      )}
+
       <div className="posts-list">
         {posts.map(post => (
           <Card key={post.id} className="border-start border-info border-4 mb-3 shadow" style={{ backgroundColor: '#f8f9fc' }}>

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { rankingApi } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 import { useLeague } from '../contexts/LeagueContext';
+import { getUserColor } from '../utils/userColors';
 
 function Ranking() {
   const { user } = useAuth();
@@ -76,20 +77,13 @@ function Ranking() {
     return username.charAt(0).toUpperCase() + username.slice(1);
   };
 
-  const getAvatarBackgroundColor = (index) => {
-    const colors = [
-      '#FFD700', // gold
-      '#C0C0C0', // silver
-      '#CD7F32', // bronze
-      '#4e73df', // blue
-      '#1cc88a', // green
-      '#36b9cc', // cyan
-      '#f6c23e', // yellow
-      '#e74a3b', // red
-      '#858796', // gray
-      '#5a5c69'  // dark gray
-    ];
-    return colors[index % colors.length];
+  const getAvatarBackgroundColor = (username, index) => {
+    // Top 3 get special colors
+    if (index === 0) return '#FFD700'; // gold
+    if (index === 1) return '#C0C0C0'; // silver
+    if (index === 2) return '#CD7F32'; // bronze
+    // Everyone else gets consistent color based on username
+    return getUserColor(username);
   };
 
   return (
@@ -148,13 +142,13 @@ function Ranking() {
                     style={{
                       width: '32px',
                       height: '32px',
-                      backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(index),
+                      backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row.username, index),
                       color: 'white',
                       fontWeight: 'bold',
                       fontSize: '0.75rem',
                       flexShrink: 0,
                       overflow: 'hidden',
-                      border: index < 3 ? `2px solid ${getAvatarBackgroundColor(index)}` : '1px solid #e3e6f0',
+                      border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row.username, index)}` : '1px solid #e3e6f0',
                       marginLeft: '4px',
                       marginRight: '8px'
                     }}

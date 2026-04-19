@@ -99,7 +99,6 @@ function Profile() {
       setSuccess(false);
 
       const updateData = {
-        username: formData.username,
         avatarColor: formData.avatarColor
       };
 
@@ -177,14 +176,14 @@ function Profile() {
 
   return (
     <div className="content-container content-container-narrow">
-      <Card className="shadow mb-4">
-        <Card.Body>
+      <Card className="border-start border-primary border-4 shadow mb-4">
+        <Card.Body className="p-4">
           {/* Avatar Preview */}
           <div className="text-center mb-4">
             <div
               style={{
-                width: '120px',
-                height: '120px',
+                width: '100px',
+                height: '100px',
                 margin: '0 auto',
                 borderRadius: '50%',
                 backgroundColor: formData.avatarColor,
@@ -192,16 +191,17 @@ function Profile() {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: '3rem',
+                fontSize: '2.5rem',
                 fontWeight: 'bold',
-                border: '4px solid #e3e6f0'
+                border: '3px solid #e3e6f0',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
               }}
             >
               {getInitials(formData.username)}
             </div>
             <div className="mt-3">
-              <h4>{formData.username}</h4>
-              <p className="text-muted mb-0">{formData.email}</p>
+              <h4 className="mb-1">{formData.username}</h4>
+              <p className="text-muted mb-0" style={{ fontSize: '0.9rem' }}>{formData.email}</p>
             </div>
           </div>
 
@@ -224,27 +224,23 @@ function Profile() {
           {/* Form */}
           <Form onSubmit={handleSubmit}>
             <Form.Group className="mb-3">
-              <Form.Label>
+              <Form.Label className="fw-bold">
                 <i className="fas fa-user me-2"></i>
                 Nazwa użytkownika
               </Form.Label>
               <Form.Control
                 type="text"
-                name="username"
                 value={formData.username}
-                onChange={handleChange}
-                required
-                minLength={5}
-                maxLength={50}
-                placeholder="Wprowadź nazwę użytkownika"
+                disabled
+                style={{ backgroundColor: '#e9ecef' }}
               />
               <Form.Text className="text-muted">
-                Od 5 do 50 znaków
+                Nazwa użytkownika nie może być zmieniona
               </Form.Text>
             </Form.Group>
 
             <Form.Group className="mb-3">
-              <Form.Label>
+              <Form.Label className="fw-bold">
                 <i className="fas fa-envelope me-2"></i>
                 Email
               </Form.Label>
@@ -260,31 +256,40 @@ function Profile() {
             </Form.Group>
 
             <Form.Group className="mb-4">
-              <Form.Label>
+              <Form.Label className="fw-bold">
                 <i className="fas fa-palette me-2"></i>
                 Kolor avatara
               </Form.Label>
-              <div className="d-flex flex-wrap gap-2 mt-2">
+              <div className="d-flex flex-wrap justify-content-center gap-2 mt-3 mb-2" style={{ padding: '10px' }}>
                 {AVATAR_COLORS.map((item) => (
                   <div
                     key={item.color}
                     onClick={() => setFormData(prev => ({ ...prev, avatarColor: item.color }))}
                     style={{
-                      width: '50px',
-                      height: '50px',
+                      width: '45px',
+                      height: '45px',
                       borderRadius: '50%',
                       backgroundColor: item.color,
                       cursor: 'pointer',
-                      border: formData.avatarColor === item.color ? '4px solid #000' : '2px solid #e3e6f0',
+                      border: formData.avatarColor === item.color ? '3px solid #000' : '2px solid #e3e6f0',
                       transition: 'all 0.2s',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
                       color: 'white',
                       fontWeight: 'bold',
-                      fontSize: '0.8rem'
+                      fontSize: '1rem',
+                      boxShadow: formData.avatarColor === item.color ? '0 2px 8px rgba(0,0,0,0.2)' : 'none'
                     }}
                     title={item.name}
+                    onMouseEnter={(e) => {
+                      if (formData.avatarColor !== item.color) {
+                        e.currentTarget.style.transform = 'scale(1.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.transform = 'scale(1)';
+                    }}
                   >
                     {formData.avatarColor === item.color && (
                       <i className="fas fa-check"></i>
@@ -292,7 +297,7 @@ function Profile() {
                   </div>
                 ))}
               </div>
-              <Form.Text className="text-muted">
+              <Form.Text className="text-muted d-block text-center">
                 Wybierz kolor swojego avatara
               </Form.Text>
             </Form.Group>
@@ -321,18 +326,24 @@ function Profile() {
       </Card>
 
       {/* Password Change Card */}
-      <Card className="shadow mb-4">
-        <Card.Body>
+      <Card className="border-start border-warning border-4 shadow mb-4">
+        <Card.Body className="p-4">
           <div
             className="d-flex justify-content-between align-items-center"
-            style={{ cursor: 'pointer' }}
+            style={{ cursor: 'pointer', padding: '8px', borderRadius: '4px', transition: 'background-color 0.2s' }}
             onClick={() => setShowPasswordSection(!showPasswordSection)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
           >
-            <h6 className="text-primary mb-0">
+            <h6 className="text-warning mb-0 fw-bold">
               <i className="fas fa-lock me-2"></i>
               Zmień hasło
             </h6>
-            <i className={`fas fa-chevron-${showPasswordSection ? 'up' : 'down'}`}></i>
+            <i className={`fas fa-chevron-${showPasswordSection ? 'up' : 'down'} text-warning`}></i>
           </div>
 
           {showPasswordSection && (

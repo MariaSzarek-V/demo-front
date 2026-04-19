@@ -333,7 +333,7 @@ function Dashboard() {
 
               <Row className="justify-content-center">
                 {/* Co typujesz */}
-                <Col md={5} className="mb-3">
+                <Col xs={6} md={5} className="mb-3">
                   <div className="text-md fw-bold text-secondary mb-2">
                     {t('whatYouPredict')}
                   </div>
@@ -367,7 +367,7 @@ function Dashboard() {
                 </Col>
 
                 {/* Rzeczywiste wyniki */}
-                <Col md={5} className="mb-3">
+                <Col xs={6} md={5} className="mb-3">
                   <div className="text-md fw-bold text-secondary mb-2">
                     {t('matchResults')}
                   </div>
@@ -406,9 +406,9 @@ function Dashboard() {
 
         {/* Mini Ranking */}
         <Col xl={6} md={6} className="mb-4">
-          <Card className="border-start border-danger border-4 shadow h-100">
+          <Card className="border-start border-warning border-4 shadow h-100">
             <Card.Header className="py-3">
-              <h6 className="m-0 fw-bold text-danger text-uppercase">
+              <h6 className="m-0 fw-bold text-warning text-uppercase">
                 🏆 {t('miniRanking')}
               </h6>
             </Card.Header>
