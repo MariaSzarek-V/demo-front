@@ -559,7 +559,7 @@ function Games() {
                         {/* Środek - typ i punkty wyśrodkowane */}
                         {game.prediction && (
                           <span
-                            className="me-2 btn btn-sm"
+                            className="me-2"
                             style={{
                               backgroundColor: 'rgba(78, 115, 223, 0.15)',
                               color: '#4e73df',
@@ -570,10 +570,13 @@ function Games() {
                               fontFamily: 'monospace',
                               fontSize: '0.95rem',
                               textAlign: 'center',
-                              fontWeight: '600'
+                              fontWeight: '600',
+                              borderRadius: '0.25rem',
+                              display: 'inline-block'
                             }}
-                            onClick={() => {
+                            onClick={(e) => {
                               if (game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate)) {
+                                e.stopPropagation();
                                 startEditing(game);
                               }
                             }}

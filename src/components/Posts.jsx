@@ -22,7 +22,6 @@ function Posts() {
   const [showNewPostModal, setShowNewPostModal] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
-  const [newPostImageUrl, setNewPostImageUrl] = useState('');
   const [newPostGifUrl, setNewPostGifUrl] = useState('');
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPickerForPost, setShowEmojiPickerForPost] = useState(false);
@@ -33,7 +32,6 @@ function Posts() {
   const [showEditPostModal, setShowEditPostModal] = useState(false);
   const [editPostTitle, setEditPostTitle] = useState('');
   const [editPostContent, setEditPostContent] = useState('');
-  const [editPostImageUrl, setEditPostImageUrl] = useState('');
   const [editPostGifUrl, setEditPostGifUrl] = useState('');
 
   // Reactions - posts
@@ -172,7 +170,6 @@ function Posts() {
       const postData = {
         title: newPostTitle.trim(),
         content: newPostContent.trim(),
-        imageUrl: newPostImageUrl.trim() || null,
         gifUrl: newPostGifUrl.trim() || null,
         leagueId: selectedLeague?.id
       };
@@ -185,7 +182,6 @@ function Posts() {
       // Reset form and close modal
       setNewPostTitle('');
       setNewPostContent('');
-      setNewPostImageUrl('');
       setNewPostGifUrl('');
       setShowNewPostModal(false);
     } catch (err) {
@@ -200,7 +196,6 @@ function Posts() {
     setEditingPost(post);
     setEditPostTitle(post.title);
     setEditPostContent(post.content);
-    setEditPostImageUrl(post.imageUrl || '');
     setEditPostGifUrl(post.gifUrl || '');
     setShowEditPostModal(true);
   };
@@ -217,7 +212,6 @@ function Posts() {
       const postData = {
         title: editPostTitle.trim(),
         content: editPostContent.trim(),
-        imageUrl: editPostImageUrl.trim() || null,
         gifUrl: editPostGifUrl.trim() || null,
         leagueId: selectedLeague?.id
       };
@@ -231,7 +225,6 @@ function Posts() {
       setEditingPost(null);
       setEditPostTitle('');
       setEditPostContent('');
-      setEditPostImageUrl('');
       setEditPostGifUrl('');
       setShowEditPostModal(false);
     } catch (err) {
@@ -516,17 +509,8 @@ function Posts() {
                 )}
               </div>
 
-              <h5 className="mb-2"><strong>{post.title}</strong></h5>
+              <h5 className="mb-2" style={{ color: '#000' }}><strong>{post.title}</strong></h5>
               <p className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
-
-              {post.imageUrl && (
-                <img
-                  src={post.imageUrl}
-                  alt="Post"
-                  className="img-fluid rounded mb-2"
-                  style={{ maxHeight: '400px' }}
-                />
-              )}
 
               {post.gifUrl && (
                 <img
@@ -664,14 +648,20 @@ function Posts() {
                     <button
                       className="btn btn-sm btn-light d-flex align-items-center gap-1"
                       onClick={() => setShowReactionsModal({ reactions: post.reactions })}
-                      style={{ fontSize: '1rem' }}
+                      style={{ fontSize: '1rem', maxWidth: '110px', overflow: 'hidden' }}
                     >
-                      {/* All emoji together */}
-                      {groupReactions(post.reactions).map(({ emoji }) => (
-                        <span key={emoji} style={{ fontSize: '1.4rem' }}>{emoji}</span>
+                      {/* First 2 emoji */}
+                      {groupReactions(post.reactions).slice(0, 2).map(({ emoji }) => (
+                        <span key={emoji} style={{ fontSize: '1.4rem', flexShrink: 0 }}>{emoji}</span>
                       ))}
-                      {/* Total count */}
-                      <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: '600' }}>
+                      {/* Count of remaining emoji types if more than 2 */}
+                      {groupReactions(post.reactions).length > 2 && (
+                        <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: '600', flexShrink: 0 }}>
+                          +{groupReactions(post.reactions).length - 2}
+                        </span>
+                      )}
+                      {/* Total reactions count */}
+                      <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: '600', flexShrink: 0 }}>
                         {post.reactions.length}
                       </span>
                     </button>
@@ -1002,14 +992,20 @@ function Posts() {
                                       <button
                                         className="btn btn-sm btn-light d-flex align-items-center gap-1"
                                         onClick={() => setShowCommentReactionsModal({ reactions: comment.reactions })}
-                                        style={{ fontSize: '0.85rem' }}
+                                        style={{ fontSize: '0.85rem', maxWidth: '110px', overflow: 'hidden' }}
                                       >
-                                        {/* All emoji together */}
-                                        {groupReactions(comment.reactions).map(({ emoji }) => (
-                                          <span key={emoji} style={{ fontSize: '1.4rem' }}>{emoji}</span>
+                                        {/* First 2 emoji */}
+                                        {groupReactions(comment.reactions).slice(0, 2).map(({ emoji }) => (
+                                          <span key={emoji} style={{ fontSize: '1.4rem', flexShrink: 0 }}>{emoji}</span>
                                         ))}
-                                        {/* Total count */}
-                                        <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: '600' }}>
+                                        {/* Count of remaining emoji types if more than 2 */}
+                                        {groupReactions(comment.reactions).length > 2 && (
+                                          <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: '600', flexShrink: 0 }}>
+                                            +{groupReactions(comment.reactions).length - 2}
+                                          </span>
+                                        )}
+                                        {/* Total reactions count */}
+                                        <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: '600', flexShrink: 0 }}>
                                           {comment.reactions.length}
                                         </span>
                                       </button>
@@ -1073,16 +1069,6 @@ function Posts() {
                 onChange={(e) => setNewPostContent(e.target.value)}
                 placeholder="Wpisz treść posta..."
                 required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>URL obrazka (opcjonalnie)</Form.Label>
-              <Form.Control
-                type="url"
-                value={newPostImageUrl}
-                onChange={(e) => setNewPostImageUrl(e.target.value)}
-                placeholder="https://..."
               />
             </Form.Group>
 
@@ -1186,16 +1172,6 @@ function Posts() {
                 onChange={(e) => setEditPostContent(e.target.value)}
                 placeholder="Wpisz treść posta..."
                 required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>URL obrazka (opcjonalnie)</Form.Label>
-              <Form.Control
-                type="url"
-                value={editPostImageUrl}
-                onChange={(e) => setEditPostImageUrl(e.target.value)}
-                placeholder="https://..."
               />
             </Form.Group>
 

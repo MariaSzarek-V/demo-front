@@ -159,26 +159,20 @@ function RankingChart({ currentUser }) {
           borderWidth = isCurrentUser ? 8 : 6;
         }
 
-        // Zwiększ rozmiar punktów gdy użytkownik jest najechany
-        let pointRadius = isCurrentUser ? 6 : 4;
-        if (isHovered) {
-          pointRadius = isCurrentUser ? 9 : 7;
-        }
-
         return {
           label: userHistory.username,
           data: userHistory.positions,
           borderColor: color,
           backgroundColor: 'rgba(78, 115, 223, 0.05)',
           borderWidth: borderWidth,
-          tension: 0.1,
+          tension: 0,
           fill: false,
           spanGaps: true,
-          pointRadius: pointRadius,
-          pointHoverRadius: isCurrentUser ? 10 : 8,
+          pointRadius: 0,
+          pointHoverRadius: 0,
           pointBackgroundColor: color,
           pointBorderColor: '#fff',
-          pointBorderWidth: 2
+          pointBorderWidth: 0
         };
       });
 
@@ -192,8 +186,7 @@ function RankingChart({ currentUser }) {
     responsive: true,
     maintainAspectRatio: false,
     interaction: {
-      mode: 'nearest',
-      axis: 'x',
+      mode: 'dataset',
       intersect: false
     },
     scales: {
@@ -231,29 +224,32 @@ function RankingChart({ currentUser }) {
       },
       tooltip: {
         enabled: true,
-        mode: 'index',
+        mode: 'dataset',
         intersect: false,
-        itemSort: function(a, b) {
-          return a.parsed.y - b.parsed.y;
-        },
         callbacks: {
-          title: function (context) {
-            return context[0].label;
+          title: function(context) {
+            return context[0].dataset.label;
           },
-          label: function (context) {
-            const position = '#' + context.parsed.y;
-            const name = context.dataset.label;
-            return position + '  ' + name;
-          },
-          labelColor: function(context) {
-            return {
-              borderColor: context.dataset.borderColor,
-              backgroundColor: context.dataset.borderColor,
-              borderWidth: 2,
-              borderRadius: 2
-            };
+          label: function() {
+            return '';
           }
+        },
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 10,
+        cornerRadius: 4,
+        titleFont: {
+          size: 14,
+          weight: 'bold'
         }
+      }
+    },
+    onHover: (event, activeElements) => {
+      if (activeElements.length > 0) {
+        const datasetIndex = activeElements[0].datasetIndex;
+        const username = data.datasets[datasetIndex].label;
+        setHoveredUser(username);
+      } else {
+        setHoveredUser(null);
       }
     }
   };

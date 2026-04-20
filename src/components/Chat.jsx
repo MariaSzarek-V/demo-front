@@ -572,16 +572,24 @@ function Chat() {
                               cursor: 'pointer',
                               display: 'flex',
                               alignItems: 'center',
-                              gap: '3px'
+                              gap: '3px',
+                              maxWidth: '110px',
+                              overflow: 'hidden'
                             }}
                             title="Zobacz reakcje"
                           >
-                            {/* All emoji together */}
-                            {groupedReactions.map(r => (
-                              <span key={r.emoji} style={{ fontSize: '1rem' }}>{r.emoji}</span>
+                            {/* First 2 emoji */}
+                            {groupedReactions.slice(0, 2).map(r => (
+                              <span key={r.emoji} style={{ fontSize: '1rem', flexShrink: 0 }}>{r.emoji}</span>
                             ))}
-                            {/* Total count */}
-                            <span style={{ fontSize: 'clamp(0.7rem, 1.6vw, 0.8rem)', color: '#666', marginLeft: '2px', fontWeight: '600' }}>
+                            {/* Count of remaining emoji types if more than 2 */}
+                            {groupedReactions.length > 2 && (
+                              <span style={{ fontSize: 'clamp(0.7rem, 1.6vw, 0.8rem)', color: '#666', fontWeight: '600', flexShrink: 0 }}>
+                                +{groupedReactions.length - 2}
+                              </span>
+                            )}
+                            {/* Total reactions count */}
+                            <span style={{ fontSize: 'clamp(0.7rem, 1.6vw, 0.8rem)', color: '#666', marginLeft: '2px', fontWeight: '600', flexShrink: 0 }}>
                               {message.reactions.length}
                             </span>
                           </button>
@@ -976,25 +984,24 @@ function Chat() {
         />
       )}
 
-      {/* Reactions Modal - dymek na dole */}
+      {/* Reactions Modal - wyśrodkowany */}
       {showReactionsModal && (
         <div
           ref={reactionsModalRef}
           style={{
             position: 'fixed',
-            bottom: 0,
+            top: '50%',
             left: '50%',
-            transform: 'translateX(-50%)',
+            transform: 'translate(-50%, -50%)',
             width: '90%',
             maxWidth: '500px',
             backgroundColor: 'white',
-            borderRadius: '16px 16px 0 0',
-            boxShadow: '0 -4px 20px rgba(0,0,0,0.2)',
+            borderRadius: '16px',
+            boxShadow: '0 4px 30px rgba(0,0,0,0.3)',
             zIndex: 1050,
-            maxHeight: '60vh',
+            maxHeight: '70vh',
             display: 'flex',
-            flexDirection: 'column',
-            animation: 'slideUp 0.3s ease-out'
+            flexDirection: 'column'
           }}
         >
           {/* Header */}

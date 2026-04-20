@@ -1,27 +1,34 @@
 import { useState, useEffect } from 'react';
-import { Row, Col, Card, Button, Badge } from 'react-bootstrap';
+import { Row, Col, Card, Button, Badge, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import RankingChart from './RankingChart';
 import PredictionPatternChart from './PredictionPatternChart';
-import { dashboardApi, resultsApi, rankingApi } from '../services/api';
+import { dashboardApi, resultsApi, rankingApi, notificationApi } from '../services/api';
 import { useLeague } from '../contexts/LeagueContext';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useTranslation } from '../i18n/translations';
 
 function Dashboard() {
   const navigate = useNavigate();
   const { selectedLeague } = useLeague();
-  const { language } = useLanguage();
-  const t = useTranslation(language);
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     if (selectedLeague) {
       loadDashboard();
+      loadNotifications();
     }
   }, [selectedLeague]);
+
+  const loadNotifications = async () => {
+    try {
+      const response = await notificationApi.getUpcomingGamesNotifications();
+      setNotifications(response.data || []);
+    } catch (err) {
+      console.error('Error loading notifications:', err);
+    }
+  };
 
   // Synchronize game card heights after rendering
   useEffect(() => {
@@ -218,24 +225,40 @@ function Dashboard() {
     // Check if current user is in top 3
     const userInTop3 = top3.some(r => r.isCurrentUser);
 
+    // Get last person in ranking
+    const lastPerson = ranking.length > 3 ? ranking[ranking.length - 1] : null;
+    const lastPersonIsCurrentUser = lastPerson && lastPerson.username === currentUsername;
+    const lastPersonIsInTop3 = lastPerson && top3.some(r => r.username === lastPerson.username);
+
+    // Build result
+    const result = [...top3];
+
+    // Add current user if not in top 3
     if (!userInTop3) {
-      // Find current user in ranking
       const currentUser = ranking.find(r => r.username === currentUsername);
-      if (currentUser) {
-        return [
-          ...top3,
-          null, // separator
-          {
-            position: currentUser.position,
-            username: currentUser.username,
-            totalPoints: currentUser.totalPoints,
-            isCurrentUser: true
-          }
-        ];
+      if (currentUser && currentUser.position > 3) {
+        result.push(null); // separator
+        result.push({
+          position: currentUser.position,
+          username: currentUser.username,
+          totalPoints: currentUser.totalPoints,
+          isCurrentUser: true
+        });
       }
     }
 
-    return top3;
+    // Add last person if exists, not in top 3, and not already added as current user
+    if (lastPerson && !lastPersonIsInTop3 && !lastPersonIsCurrentUser) {
+      result.push(null); // separator
+      result.push({
+        position: lastPerson.position,
+        username: lastPerson.username,
+        totalPoints: lastPerson.totalPoints,
+        isCurrentUser: false
+      });
+    }
+
+    return result;
   };
 
   const formatDate = (dateString) => {
@@ -286,8 +309,41 @@ function Dashboard() {
 
   if (!stats) return null;
 
+  const formatMinutes = (minutes) => {
+    if (minutes < 60) {
+      return `${minutes} minut`;
+    } else if (minutes < 1440) {
+      const hours = Math.floor(minutes / 60);
+      return `${hours} ${hours === 1 ? 'godzinę' : hours < 5 ? 'godziny' : 'godzin'}`;
+    }
+    return '';
+  };
+
   return (
     <div className="content-container" style={{ height: 'calc(100vh - 150px)', overflowY: 'auto', paddingBottom: '2rem' }}>
+      {/* Notification Banner */}
+      {notifications && notifications.length > 0 && (
+        <Alert variant="danger" className="mb-3">
+          <div className="d-flex align-items-center justify-content-between">
+            <div className="d-flex align-items-center">
+              <i className="fas fa-exclamation-triangle me-2"></i>
+              <div>
+                <strong>Mecz {notifications[0].homeTeam} - {notifications[0].awayTeam} zaczyna się za {formatMinutes(notifications[0].minutesUntilStart)}.</strong>
+                {' '}
+                <Link to={`/predictions/new/${notifications[0].gameId}`} className="text-danger" style={{ textDecoration: 'underline', fontWeight: 'bold' }}>
+                  Wytypuj wynik meczu!
+                </Link>
+                {notifications.length > 1 && (
+                  <span className="ms-2 text-muted" style={{ fontSize: '0.9rem' }}>
+                    (i {notifications.length - 1} {notifications.length === 2 ? 'inny mecz' : notifications.length < 5 ? 'inne mecze' : 'innych meczów'})
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+        </Alert>
+      )}
+
       {/* Content Row - Statystyki */}
       <Row className="mt-4">
         {/* Twoje wyniki - Lewa kolumna */}
@@ -295,21 +351,21 @@ function Dashboard() {
           <Card className="border-start border-primary border-4 shadow h-100">
             <Card.Header className="py-3">
               <h6 className="m-0 fw-bold text-primary text-uppercase">
-                🎯 {t('yourStyleOfPlay')}
+                🎯 Twój styl gry
               </h6>
             </Card.Header>
             <Card.Body className="py-3">
 
               {/* Punktacja */}
               <div className="mb-3">
-                <div className="fw-bold" style={{ fontSize: '0.875rem', color: '#28a745' }}>
-                  {stats.exactMatches} x 3 {t('points')}
+                <div className="fw-bold" style={{ fontSize: '0.85rem', color: '#28a745' }}>
+                  {stats.exactMatches} x 3 pkt
                 </div>
-                <div className="text-warning fw-bold" style={{ fontSize: '0.875rem' }}>
-                  {stats.partialMatches} x 1 {t('points')}
+                <div className="text-warning fw-bold" style={{ fontSize: '0.85rem' }}>
+                  {stats.partialMatches} x 1 pkt
                 </div>
-                <div className="text-danger fw-bold" style={{ fontSize: '0.875rem' }}>
-                  {stats.noMatches} x 0 {t('points')}
+                <div className="text-danger fw-bold" style={{ fontSize: '0.85rem' }}>
+                  {stats.noMatches} x 0 pkt
                 </div>
 
                 {/* Kreska i podsumowanie */}
@@ -320,13 +376,13 @@ function Dashboard() {
                     width: '100%'
                   }}
                 />
-                <div className="fw-bold text-primary" style={{ fontSize: '1.1rem' }}>
-                  {stats.exactMatches * 3 + stats.partialMatches * 1} {t('points')}
+                <div className="fw-bold text-primary" style={{ fontSize: '0.9rem' }}>
+                  {stats.exactMatches * 3 + stats.partialMatches * 1} pkt
                 </div>
 
                 {stats.almostPerfect > 0 && (
-                  <div className="text-info fw-bold mt-2" style={{ fontSize: '0.875rem' }}>
-                    😫 {stats.almostPerfect} x {t('almostPerfect')}
+                  <div className="text-info fw-bold mt-2" style={{ fontSize: '0.85rem' }}>
+                    😫 {stats.almostPerfect} x prawie trafione
                   </div>
                 )}
               </div>
@@ -334,72 +390,83 @@ function Dashboard() {
               <Row className="justify-content-center">
                 {/* Co typujesz */}
                 <Col xs={6} md={5} className="mb-3">
-                  <div className="text-md fw-bold text-secondary mb-2">
-                    {t('whatYouPredict')}
+                  <div className="fw-bold text-secondary mb-2" style={{ fontSize: '0.85rem' }}>
+                    Co typujesz
                   </div>
                   {stats.topPredictions && stats.topPredictions.length > 0 ? (
                     stats.topPredictions.map((item, index) => (
                       <div
                         key={index}
                         className="d-flex align-items-center mb-2"
-                        style={{ fontSize: '0.95rem' }}
                       >
                         <span
                           className="me-2 fw-bold"
                           style={{
                             color: index === 0 ? '#f6c23e' : index === 1 ? '#858796' : '#4e73df',
-                            fontSize: '1rem'
+                            fontSize: '0.85rem'
                           }}
                         >
                           #{index + 1}
                         </span>
-                        <strong className="fs-5 me-2">{item.prediction}</strong>
-                        <strong className="text-muted">
+                        <strong className="me-2" style={{ fontSize: '0.9rem' }}>{item.prediction}</strong>
+                        <strong className="text-muted" style={{ fontSize: '0.85rem' }}>
                           ({item.count}x)
                         </strong>
                       </div>
                     ))
                   ) : (
-                    <p className="text-muted mb-0" style={{ fontSize: '0.875rem' }}>
-                      {t('noPredictions')}
+                    <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
+                      Brak typowań
                     </p>
                   )}
                 </Col>
 
                 {/* Rzeczywiste wyniki */}
                 <Col xs={6} md={5} className="mb-3">
-                  <div className="text-md fw-bold text-secondary mb-2">
-                    {t('matchResults')}
+                  <div className="fw-bold text-secondary mb-2" style={{ fontSize: '0.85rem' }}>
+                    Wyniki meczów
                   </div>
                   {stats.realResultsStats && stats.realResultsStats.topRealResults && stats.realResultsStats.topRealResults.length > 0 ? (
                     stats.realResultsStats.topRealResults.map((item, index) => (
                       <div
                         key={index}
                         className="d-flex align-items-center mb-2"
-                        style={{ fontSize: '0.95rem' }}
                       >
                         <span
                           className="me-2 fw-bold"
                           style={{
                             color: index === 0 ? '#f6c23e' : index === 1 ? '#858796' : '#4e73df',
-                            fontSize: '1rem'
+                            fontSize: '0.85rem'
                           }}
                         >
                           #{index + 1}
                         </span>
-                        <strong className="fs-5 me-2">{item.result}</strong>
-                        <strong className="text-muted">
+                        <strong className="me-2" style={{ fontSize: '0.9rem' }}>{item.result}</strong>
+                        <strong className="text-muted" style={{ fontSize: '0.85rem' }}>
                           ({item.count}x)
                         </strong>
                       </div>
                     ))
                   ) : (
-                    <p className="text-muted mb-0" style={{ fontSize: '0.875rem' }}>
-                      {t('noData')}
+                    <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
+                      Brak danych
                     </p>
                   )}
                 </Col>
               </Row>
+
+              {/* Historia typowania button */}
+              <div className="mt-3 text-center">
+                <Button
+                  variant="outline-primary"
+                  size="sm"
+                  onClick={() => navigate('/prediction-history')}
+                  style={{ width: '100%', maxWidth: '200px' }}
+                >
+                  <i className="fas fa-history me-2"></i>
+                  Historia typowania
+                </Button>
+              </div>
             </Card.Body>
           </Card>
         </Col>
@@ -409,7 +476,7 @@ function Dashboard() {
           <Card className="border-start border-warning border-4 shadow h-100">
             <Card.Header className="py-3">
               <h6 className="m-0 fw-bold text-warning text-uppercase">
-                🏆 {t('miniRanking')}
+                🏆 Mini Ranking
               </h6>
             </Card.Header>
             <Card.Body className="py-3">
@@ -476,7 +543,7 @@ function Dashboard() {
             <Card className="border-start border-info border-4 shadow" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Card.Header className="py-3">
                 <h6 className="m-0 fw-bold text-info text-uppercase">
-                  📅 {t('upcomingMatches')}
+                  📅 Najbliższe mecze
                 </h6>
               </Card.Header>
               <Card.Body style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
@@ -575,7 +642,7 @@ function Dashboard() {
                         variant="outline-primary"
                         size="sm"
                         style={{ minWidth: '38px', padding: '4px 8px' }}
-                        title={t('predict')}
+                        title="Typuj"
                       >
                         <i className="fas fa-plus"></i>
                       </Button>
@@ -595,7 +662,7 @@ function Dashboard() {
             <Card className="border-start border-danger border-4 shadow" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
               <Card.Header className="py-3">
                 <h6 className="m-0 fw-bold text-danger text-uppercase">
-                  ⏱️ {t('recentMatches')}
+                  ⏱️ Ostatnie mecze
                 </h6>
               </Card.Header>
               <Card.Body style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>

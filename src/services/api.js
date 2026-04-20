@@ -56,6 +56,7 @@ export const gameApi = {
 // Prediction endpoints
 export const predictionApi = {
   getMyPredictions: () => api.get('/predictions/my'),
+  getMyPredictionHistory: (leagueId) => api.get(`/predictions/my/history?leagueId=${leagueId}`),
   getPredictionById: (id) => api.get(`/predictions/${id}`),
   createPrediction: (data) => api.post('/predictions', data),
   updatePrediction: (id, data) => api.put(`/predictions/${id}`, data),
@@ -173,6 +174,15 @@ export const dashboardApi = {
       console.error('Error fetching dashboard data:', error);
       throw error;
     }
+  }
+};
+
+// Notification endpoints
+export const notificationApi = {
+  getUpcomingGamesNotifications: () => api.get('/notifications/upcoming-games'),
+  getUnreadPostsCount: (leagueId = null) => {
+    const url = leagueId ? `/posts/unread-count?leagueId=${leagueId}` : '/posts/unread-count';
+    return api.get(url);
   }
 };
 

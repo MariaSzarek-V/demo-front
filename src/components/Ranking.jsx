@@ -131,7 +131,7 @@ function Ranking() {
                   {/* Pozycja */}
                   <span
                     className="d-flex align-items-center"
-                    style={{ minWidth: '35px', fontSize: '0.95rem', ...getPositionStyle(index) }}
+                    style={{ minWidth: '28px', fontSize: '0.9rem', ...getPositionStyle(index) }}
                   >
                     {row.position}.
                   </span>
@@ -140,17 +140,17 @@ function Ranking() {
                   <div
                     className="d-flex align-items-center justify-content-center rounded-circle"
                     style={{
-                      width: '32px',
-                      height: '32px',
+                      width: '28px',
+                      height: '28px',
                       backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row.username, index),
                       color: 'white',
                       fontWeight: 'bold',
-                      fontSize: '0.75rem',
+                      fontSize: '0.7rem',
                       flexShrink: 0,
                       overflow: 'hidden',
                       border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row.username, index)}` : '1px solid #e3e6f0',
-                      marginLeft: '4px',
-                      marginRight: '8px'
+                      marginLeft: '2px',
+                      marginRight: '6px'
                     }}
                   >
                     {row.avatarUrl ? (
@@ -171,11 +171,14 @@ function Ranking() {
                   {/* Username */}
                   <span
                     style={{
-                      fontSize: '0.9rem',
+                      fontSize: '0.85rem',
                       flex: 1,
                       minWidth: 0,
                       color: '#000000',
-                      fontWeight: index < 3 ? 'bold' : 'normal'
+                      fontWeight: index < 3 ? 'bold' : 'normal',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
                     }}
                   >
                     {capitalizeFirstLetter(row.username)}
@@ -184,7 +187,7 @@ function Ranking() {
                   {/* Zmiana pozycji - stała szerokość */}
                   <div
                     className="d-flex align-items-center justify-content-end"
-                    style={{ width: '50px', flexShrink: 0, fontSize: '0.9rem' }}
+                    style={{ width: '38px', flexShrink: 0, fontSize: '0.85rem' }}
                   >
                     {row.positionChange !== null && row.positionChange !== 0 && (
                       <>
@@ -194,14 +197,14 @@ function Ranking() {
                           }`}
                           style={{
                             color: row.positionChange > 0 ? '#1cc88a' : '#e74a3b',
-                            fontSize: '0.9rem'
+                            fontSize: '0.8rem'
                           }}
                         ></i>
                         <span
                           className="ms-1"
                           style={{
                             color: row.positionChange > 0 ? '#1cc88a' : '#e74a3b',
-                            fontSize: '0.9rem',
+                            fontSize: '0.8rem',
                             fontWeight: 'inherit'
                           }}
                         >
@@ -214,8 +217,8 @@ function Ranking() {
                   {/* Punkty */}
                   <span
                     style={{
-                      fontSize: '0.9rem',
-                      width: '70px',
+                      fontSize: '0.85rem',
+                      width: '55px',
                       textAlign: 'right',
                       flexShrink: 0,
                       color: '#000000',

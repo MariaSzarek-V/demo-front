@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Card, Row, Col } from 'react-bootstrap';
 import { Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import { resultsApi } from '../services/api';
 import { getUserColor } from '../utils/userColors';
+import { useAuth } from '../contexts/AuthContext';
 
 ChartJS.register(ArcElement, Tooltip, Legend);
 
 function GameResults() {
+  const { user } = useAuth();
   const { gameId } = useParams();
+  const navigate = useNavigate();
   const [results, setResults] = useState([]);
   const [gameStats, setGameStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -117,6 +120,13 @@ function GameResults() {
     if (count === 1) return 'osoba';
     if (count > 1 && count < 5) return 'osoby';
     return 'osób';
+  };
+
+  const capitalizeWords = (str) => {
+    if (!str) return '';
+    return str.split(' ').map(word =>
+      word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    ).join(' ');
   };
 
   const chartData = gameStats ? {
@@ -283,12 +293,14 @@ function GameResults() {
         <Row>
           {/* Najczęściej typowany wynik i Rozstrzygnięcia */}
           <Col xl={6} md={6} className="mb-4">
-            <Card className="border-start border-info border-4 shadow h-100 py-2">
+            <Card className="border-start border-info border-4 shadow h-100">
+              <Card.Header className="py-3">
+                <h6 className="m-0 fw-bold text-info text-uppercase">
+                  📊 Analiza typowania
+                </h6>
+              </Card.Header>
               <Card.Body>
-                <div className="fw-bold text-info text-uppercase mb-2" style={{ fontSize: '1rem' }}>
-                  Najczęstszy typ
-                </div>
-
+                <div className="fw-bold text-secondary mb-2" style={{ fontSize: '1rem' }}>NAJCZĘŚCIEJ TYPOWANY WYNIK</div>
                 <div className="mb-3">
                   {gameStats.mostCommonCount === 1 ? (
                     <div className="mb-0 fw-bold text-muted" style={{ fontSize: '0.9rem' }}>
@@ -331,11 +343,13 @@ function GameResults() {
 
           {/* Wyniki typowania - Pie Chart */}
           <Col xl={6} md={6} className="mb-4">
-            <Card className="border-start border-success border-4 shadow h-100 py-2">
+            <Card className="border-start border-success border-4 shadow h-100">
+              <Card.Header className="py-3">
+                <h6 className="m-0 fw-bold text-success text-uppercase">
+                  📈 Wyniki typowania
+                </h6>
+              </Card.Header>
               <Card.Body>
-                <div className="fw-bold text-success text-uppercase mb-2" style={{ fontSize: '1rem' }}>
-                  Wyniki typowania
-                </div>
                 <div style={{ height: '200px', position: 'relative' }}>
                   {chartData && <Pie data={chartData} options={chartOptions} />}
                 </div>
@@ -387,12 +401,33 @@ function GameResults() {
                   return getUserColor(username);
                 };
 
+                const isCurrentUser = row.username === user?.username;
+
                 return (
                   <div
                     key={index}
                     className="d-flex align-items-center p-2 rounded"
+                    onClick={() => {
+                      if (!isCurrentUser) {
+                        navigate(`/compare/${row.userId}`);
+                      }
+                    }}
                     style={{
-                      borderBottom: index < results.length - 1 ? '1px solid #e3e6f0' : 'none'
+                      borderBottom: index < results.length - 1 ? '1px solid #e3e6f0' : 'none',
+                      backgroundColor: isCurrentUser ? 'rgba(8, 145, 178, 0.08)' : 'transparent',
+                      fontWeight: isCurrentUser ? 'bold' : 'normal',
+                      cursor: !isCurrentUser ? 'pointer' : 'default',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isCurrentUser) {
+                        e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isCurrentUser) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
                     }}
                   >
                     {/* Pozycja */}
@@ -442,7 +477,7 @@ function GameResults() {
                         color: '#000000'
                       }}
                     >
-                      {row.username}
+                      {capitalizeWords(row.username)}
                     </span>
 
                     {/* Typowany wynik */}
@@ -453,10 +488,10 @@ function GameResults() {
                         fontFamily: 'monospace',
                         fontWeight: '600',
                         color: '#4e73df',
-                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        backgroundColor: 'rgba(78, 115, 223, 0.15)',
                         padding: '4px 12px',
                         borderRadius: '4px',
-                        border: '1px solid rgba(78, 115, 223, 0.2)',
+                        border: '1px solid rgba(78, 115, 223, 0.3)',
                         minWidth: '60px',
                         textAlign: 'center'
                       }}
@@ -517,12 +552,33 @@ function GameResults() {
                   return getUserColor(username);
                 };
 
+                const isCurrentUser = row.username === user?.username;
+
                 return (
                   <div
                     key={index}
                     className="d-flex align-items-center p-2 rounded"
+                    onClick={() => {
+                      if (!isCurrentUser) {
+                        navigate(`/compare/${row.userId}`);
+                      }
+                    }}
                     style={{
-                      borderBottom: index < results.length - 1 ? '1px solid #e3e6f0' : 'none'
+                      borderBottom: index < results.length - 1 ? '1px solid #e3e6f0' : 'none',
+                      backgroundColor: isCurrentUser ? 'rgba(8, 145, 178, 0.08)' : 'transparent',
+                      fontWeight: isCurrentUser ? 'bold' : 'normal',
+                      cursor: !isCurrentUser ? 'pointer' : 'default',
+                      transition: 'background-color 0.2s'
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isCurrentUser) {
+                        e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.1)';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isCurrentUser) {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                      }
                     }}
                   >
                     {/* Pozycja */}
@@ -572,7 +628,7 @@ function GameResults() {
                         color: '#000000'
                       }}
                     >
-                      {row.username}
+                      {capitalizeWords(row.username)}
                     </span>
 
                     {/* Typowany wynik */}
@@ -583,10 +639,10 @@ function GameResults() {
                         fontFamily: 'monospace',
                         fontWeight: '600',
                         color: '#4e73df',
-                        backgroundColor: 'rgba(78, 115, 223, 0.1)',
+                        backgroundColor: 'rgba(78, 115, 223, 0.15)',
                         padding: '4px 8px',
                         borderRadius: '4px',
-                        border: '1px solid rgba(78, 115, 223, 0.2)',
+                        border: '1px solid rgba(78, 115, 223, 0.3)',
                         minWidth: '50px',
                         textAlign: 'center'
                       }}

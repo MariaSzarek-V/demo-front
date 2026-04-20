@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthContext';
 import { LeagueProvider } from './contexts/LeagueContext';
-import { LanguageProvider } from './contexts/LanguageContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import Login from './components/Login';
 import Header from './components/Header';
@@ -10,6 +9,7 @@ import Games from './components/Games';
 import AdminGames from './components/AdminGames';
 import Ranking from './components/Ranking';
 import Compare from './components/Compare';
+import PredictionHistory from './components/PredictionHistory';
 import Chat from './components/Chat';
 import Posts from './components/Posts';
 import GameResults from './components/GameResults';
@@ -18,13 +18,15 @@ import Profile from './components/Profile';
 import Footer from './components/Footer';
 import './App.css';
 
+console.log('========== APP.JSX LOADED ==========');
+
 function App() {
+  console.log('========== APP COMPONENT RENDERING ==========');
   return (
     <Router>
       <AuthProvider>
-        <LanguageProvider>
-          <LeagueProvider>
-            <Routes>
+        <LeagueProvider>
+          <Routes>
             <Route path="/login" element={<Login />} />
             <Route
               path="/*"
@@ -41,6 +43,7 @@ function App() {
                           <Route path="/admin/games" element={<AdminGames />} />
                           <Route path="/ranking" element={<Ranking />} />
                           <Route path="/compare/:userId" element={<Compare />} />
+                          <Route path="/prediction-history" element={<PredictionHistory />} />
                           <Route path="/chat" element={<Chat />} />
                           <Route path="/posts" element={<Posts />} />
                           <Route path="/profile" element={<Profile />} />
@@ -57,7 +60,6 @@ function App() {
             />
             </Routes>
           </LeagueProvider>
-        </LanguageProvider>
       </AuthProvider>
     </Router>
   );

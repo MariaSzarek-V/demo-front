@@ -1,17 +1,40 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Navbar, Nav, NavDropdown, Container, ButtonGroup, Button } from 'react-bootstrap';
+import { Navbar, Nav, NavDropdown, Container, Badge } from 'react-bootstrap';
 import { useAuth } from '../contexts/AuthContext';
-import { useLanguage } from '../contexts/LanguageContext';
-import { useTranslation } from '../i18n/translations';
+import { useLeague } from '../contexts/LeagueContext';
+import { notificationApi } from '../services/api';
+import { useState, useEffect } from 'react';
 import LeagueSelector from './LeagueSelector';
 
 function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, logout } = useAuth();
-  const { language, switchLanguage } = useLanguage();
-  const t = useTranslation(language);
+  const { selectedLeague } = useLeague();
   const username = user ? user.username : 'User';
+  const [unreadPostsCount, setUnreadPostsCount] = useState(0);
+
+  useEffect(() => {
+    if (selectedLeague) {
+      loadUnreadPostsCount();
+
+      // Refresh count every minute
+      const interval = setInterval(() => {
+        loadUnreadPostsCount();
+      }, 60000);
+
+      return () => clearInterval(interval);
+    }
+  }, [selectedLeague]);
+
+  const loadUnreadPostsCount = async () => {
+    try {
+      const response = await notificationApi.getUnreadPostsCount(selectedLeague?.id);
+      setUnreadPostsCount(response.data || 0);
+    } catch (err) {
+      console.error('Error loading unread posts count:', err);
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -29,33 +52,9 @@ function Header() {
               <span className="fw-bold">PredictionCUP</span>
             </Navbar.Brand>
 
-            {/* League Selector and Language Switcher */}
+            {/* League Selector and User Dropdown */}
             <div className="d-flex align-items-center gap-3">
               <LeagueSelector />
-
-              {/* Language Switcher */}
-              <ButtonGroup size="sm">
-                <Button
-                  variant={language === 'pl' ? 'light' : 'outline-light'}
-                  onClick={() => switchLanguage('pl')}
-                  style={{
-                    minWidth: '40px',
-                    fontWeight: language === 'pl' ? 'bold' : 'normal'
-                  }}
-                >
-                  PL
-                </Button>
-                <Button
-                  variant={language === 'en' ? 'light' : 'outline-light'}
-                  onClick={() => switchLanguage('en')}
-                  style={{
-                    minWidth: '40px',
-                    fontWeight: language === 'en' ? 'bold' : 'normal'
-                  }}
-                >
-                  EN
-                </Button>
-              </ButtonGroup>
 
               {/* User Dropdown */}
             <NavDropdown
@@ -71,16 +70,16 @@ function Header() {
             >
               <NavDropdown.Item as={Link} to="/profile">
                 <i className="fas fa-user fa-sm fa-fw me-2 text-muted"></i>
-                {t('profile')}
+                Profil
               </NavDropdown.Item>
               <NavDropdown.Item as={Link} to="/notifications">
                 <i className="fas fa-bell fa-sm fa-fw me-2 text-muted"></i>
-                {t('notifications')}
+                Powiadomienia
               </NavDropdown.Item>
               <NavDropdown.Divider />
               <NavDropdown.Item onClick={handleLogout}>
                 <i className="fas fa-sign-out-alt fa-sm fa-fw me-2 text-muted"></i>
-                {t('logout')}
+                Wyloguj
               </NavDropdown.Item>
             </NavDropdown>
             </div>
@@ -94,7 +93,7 @@ function Header() {
               className={`text-white text-nowrap ${location.pathname === '/games' ? 'active' : ''}`}
               style={{ padding: '0.25rem 0.75rem' }}
             >
-              {t('games')}
+              Mecze
             </Nav.Link>
             <Nav.Link
               as={Link}
@@ -102,7 +101,7 @@ function Header() {
               className={`text-white text-nowrap ${location.pathname === '/ranking' ? 'active' : ''}`}
               style={{ padding: '0.25rem 0.75rem' }}
             >
-              {t('ranking')}
+              Ranking
             </Nav.Link>
             <Nav.Link
               as={Link}
@@ -110,15 +109,35 @@ function Header() {
               className={`text-white text-nowrap ${location.pathname === '/chat' ? 'active' : ''}`}
               style={{ padding: '0.25rem 0.75rem' }}
             >
-              {t('chat')}
+              Chat
             </Nav.Link>
             <Nav.Link
               as={Link}
               to="/posts"
               className={`text-white text-nowrap ${location.pathname === '/posts' ? 'active' : ''}`}
-              style={{ padding: '0.25rem 0.75rem' }}
+              style={{ padding: '0.25rem 0.75rem', position: 'relative' }}
             >
-              {t('posts')}
+              Posty
+              {unreadPostsCount > 0 && (
+                <Badge
+                  bg="danger"
+                  pill
+                  style={{
+                    position: 'absolute',
+                    top: '-5px',
+                    right: '-5px',
+                    fontSize: '0.65rem',
+                    minWidth: '18px',
+                    height: '18px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 5px'
+                  }}
+                >
+                  {unreadPostsCount > 99 ? '99+' : unreadPostsCount}
+                </Badge>
+              )}
             </Nav.Link>
           </div>
         </div>
