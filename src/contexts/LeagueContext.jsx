@@ -1,9 +1,11 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { leagueApi, rankingApi, userApi } from '../services/api';
+import { useAuth } from './AuthContext';
 
 const LeagueContext = createContext(null);
 
 export const LeagueProvider = ({ children }) => {
+  const { user } = useAuth();
   // 1️⃣ INSTANT LOAD z localStorage - użytkownik widzi dane od razu!
   const [selectedLeague, setSelectedLeague] = useState(() => {
     const savedLeagueId = localStorage.getItem('selectedLeagueId');
@@ -59,9 +61,14 @@ export const LeagueProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // 2️⃣ W TLE odśwież dane z API
-    loadMyLeagues();
-  }, []);
+    // 2️⃣ W TLE odśwież dane z API - TYLKO jeśli użytkownik jest zalogowany
+    if (user) {
+      loadMyLeagues();
+    } else {
+      // Jeśli nie zalogowany, wyczyść dane
+      setLoading(false);
+    }
+  }, [user]);
 
   const loadMyLeagues = async () => {
     try {

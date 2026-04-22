@@ -3,7 +3,7 @@ import { Row, Col, Card, Button, Badge, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import RankingChart from './RankingChart';
 import PredictionPatternChart from './PredictionPatternChart';
-import { dashboardApi, resultsApi, rankingApi, notificationApi } from '../services/api';
+import { dashboardApi, resultsApi, rankingApi, notificationApi, predictionApi } from '../services/api';
 import { useLeague } from '../contexts/LeagueContext';
 
 function Dashboard() {
@@ -13,6 +13,8 @@ function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [notifications, setNotifications] = useState([]);
+  const [editingGameId, setEditingGameId] = useState(null);
+  const [editedScores, setEditedScores] = useState({});
 
   useEffect(() => {
     if (selectedLeague) {
@@ -38,6 +40,18 @@ function Dashboard() {
         const upcomingGames = document.querySelectorAll('.upcoming-game-item');
         const recentGames = document.querySelectorAll('.recent-game-item');
 
+        if (editingGameId !== null) {
+          // When editing, reset ALL heights to auto so cards can expand
+          upcomingGames.forEach(card => {
+            card.style.height = 'auto';
+          });
+          recentGames.forEach(card => {
+            card.style.height = 'auto';
+          });
+          return;
+        }
+
+        // Only synchronize heights when not editing
         const maxLength = Math.max(upcomingGames.length, recentGames.length);
 
         for (let i = 0; i < maxLength; i++) {
@@ -61,7 +75,7 @@ function Dashboard() {
         }
       }, 100);
     }
-  }, [loading, stats]);
+  }, [loading, stats, editingGameId]);
 
   const loadDashboard = async () => {
     try {
@@ -283,6 +297,118 @@ function Dashboard() {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const isGameStarted = (gameDate) => {
+    let date;
+    if (Array.isArray(gameDate)) {
+      const [year, month, day, hour, minute] = gameDate;
+      date = new Date(year, month - 1, day, hour, minute);
+    } else {
+      date = new Date(gameDate);
+    }
+    return date <= new Date();
+  };
+
+  const startEditing = (game) => {
+    const gameId = game.id;
+    setEditingGameId(gameId);
+    setEditedScores({
+      ...editedScores,
+      [gameId]: {
+        home: game.predictedHomeScore?.toString() || '',
+        away: game.predictedAwayScore?.toString() || ''
+      }
+    });
+  };
+
+  const cancelEditing = () => {
+    setEditingGameId(null);
+  };
+
+  const handleScoreChange = (game, team, value) => {
+    const gameId = game.id;
+    const currentScores = editedScores[gameId] || { home: '', away: '' };
+    const newScores = {
+      ...editedScores,
+      [gameId]: {
+        ...currentScores,
+        [team]: value
+      }
+    };
+    setEditedScores(newScores);
+  };
+
+  const savePrediction = async (game) => {
+    const gameId = game.id;
+    const scores = editedScores[gameId];
+
+    if (!scores?.home || !scores?.away) {
+      alert('Proszę wprowadzić oba wyniki (gospodarze i goście)');
+      return;
+    }
+
+    const homeScore = parseInt(scores.home, 10);
+    const awayScore = parseInt(scores.away, 10);
+
+    if (isNaN(homeScore) || isNaN(awayScore) || homeScore < 0 || awayScore < 0) {
+      alert('Proszę wprowadzić poprawne wyniki (liczby >= 0)');
+      return;
+    }
+
+    try {
+      const predictionData = {
+        gameId: gameId,
+        predictedHomeScore: homeScore,
+        predictedAwayScore: awayScore
+      };
+
+      if (game.hasPrediction) {
+        // Find prediction ID from myPredictions
+        const myPredictions = await predictionApi.getMyPredictions();
+        const prediction = myPredictions.data.find(p => p.gameId === gameId);
+
+        if (prediction?.id) {
+          await predictionApi.updatePrediction(prediction.id, predictionData);
+        } else {
+          await predictionApi.createPrediction(predictionData);
+        }
+      } else {
+        await predictionApi.createPrediction(predictionData);
+      }
+
+      setEditingGameId(null);
+      await loadDashboard();
+    } catch (err) {
+      console.error('Error saving prediction:', err);
+      alert('Nie udało się zapisać typu: ' + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleDeletePrediction = async (game, e) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
+    try {
+      const myPredictions = await predictionApi.getMyPredictions();
+      const prediction = myPredictions.data.find(p => p.gameId === game.id);
+
+      if (prediction?.id) {
+        await predictionApi.deletePrediction(prediction.id);
+        setEditingGameId(null);
+        await loadDashboard();
+      }
+    } catch (err) {
+      console.error('Error deleting prediction:', err);
+      if (err.response?.status === 404) {
+        setEditingGameId(null);
+        await loadDashboard();
+      } else {
+        alert('Nie udało się usunąć typu: ' + (err.response?.data?.message || err.message));
+      }
+    }
   };
 
   if (loading) {
@@ -551,23 +677,30 @@ function Dashboard() {
               {stats.upcomingGames.map((game, index) => (
                 <div
                   key={game.id}
+                  data-game-id={game.id}
                   className="game-item upcoming-game-item"
                   style={{
                     padding: '8px',
                     borderRadius: '4px',
                     marginBottom: '8px',
                     borderBottom: index < stats.upcomingGames.length - 1 ? '1px solid #e3e6f0' : 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    cursor: 'pointer',
+                    cursor: editingGameId === game.id ? 'default' : (!isGameStarted(game.gameDate) ? 'pointer' : 'default'),
                     transition: 'all 0.2s ease'
                   }}
-                  onClick={() => navigate(`/games`)}
+                  onClick={() => {
+                    if (editingGameId === game.id) {
+                      return;
+                    }
+                    if (!isGameStarted(game.gameDate)) {
+                      startEditing(game);
+                    }
+                  }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'scale(1.02)';
-                    e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.05)';
-                    e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    if (!isGameStarted(game.gameDate) && editingGameId !== game.id) {
+                      e.currentTarget.style.transform = 'scale(1.02)';
+                      e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.05)';
+                      e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                    }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'scale(1)';
@@ -617,35 +750,126 @@ function Dashboard() {
 
                   {/* Typ użytkownika */}
                   <div className="d-flex align-items-center justify-content-center flex-wrap" style={{ gap: '8px' }}>
-                    {game.hasPrediction ? (
-                      <span
-                        className="btn btn-sm"
-                        style={{
-                          backgroundColor: 'rgba(78, 115, 223, 0.15)',
-                          color: '#4e73df',
-                          border: '1px solid rgba(78, 115, 223, 0.3)',
-                          cursor: 'default',
-                          width: '60px',
-                          padding: '4px 8px',
-                          fontFamily: 'monospace',
-                          fontSize: '0.95rem',
-                          textAlign: 'center',
-                          fontWeight: '600'
-                        }}
-                      >
-                        {game.predictedHomeScore}:{game.predictedAwayScore}
-                      </span>
+                    {editingGameId === game.id ? (
+                      <div className="d-flex flex-column align-items-center gap-2" style={{ width: '100%' }}>
+                        {/* Linia 1: Pola input wyśrodkowane */}
+                        <div className="d-flex align-items-center gap-2 justify-content-center">
+                          <input
+                            type="number"
+                            min="0"
+                            className="form-control form-control-sm"
+                            style={{ width: '50px', textAlign: 'center', fontFamily: 'monospace', fontWeight: '600' }}
+                            value={editedScores[game.id]?.home || ''}
+                            onChange={(e) => handleScoreChange(game, 'home', e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                savePrediction(game);
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            autoFocus
+                          />
+                          <span style={{ fontWeight: 'bold', color: '#4e73df' }}>:</span>
+                          <input
+                            type="number"
+                            min="0"
+                            className="form-control form-control-sm"
+                            style={{ width: '50px', textAlign: 'center', fontFamily: 'monospace', fontWeight: '600' }}
+                            value={editedScores[game.id]?.away || ''}
+                            onChange={(e) => handleScoreChange(game, 'away', e.target.value)}
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                savePrediction(game);
+                              }
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                        </div>
+                        {/* Linia 2: Przyciski wyśrodkowane */}
+                        <div className="d-flex align-items-center gap-2 justify-content-center">
+                          <Button
+                            variant="success"
+                            size="sm"
+                            style={{ minWidth: '38px', padding: '4px 8px' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              savePrediction(game);
+                            }}
+                            title="Zapisz"
+                          >
+                            <i className="fas fa-check"></i>
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            style={{ minWidth: '38px', padding: '4px 8px' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              cancelEditing();
+                            }}
+                            title="Anuluj"
+                          >
+                            <i className="fas fa-times"></i>
+                          </Button>
+                          {game.hasPrediction && (
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              style={{ minWidth: '38px', padding: '4px 8px' }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeletePrediction(game, e);
+                              }}
+                              title="Usuń"
+                            >
+                              <i className="fas fa-trash"></i>
+                            </Button>
+                          )}
+                        </div>
+                      </div>
                     ) : (
-                      <Button
-                        as={Link}
-                        to={`/predictions/new/${game.id}`}
-                        variant="outline-primary"
-                        size="sm"
-                        style={{ minWidth: '38px', padding: '4px 8px' }}
-                        title="Typuj"
-                      >
-                        <i className="fas fa-plus"></i>
-                      </Button>
+                      <>
+                        {game.hasPrediction ? (
+                          <span
+                            className="btn btn-sm"
+                            style={{
+                              backgroundColor: 'rgba(78, 115, 223, 0.15)',
+                              color: '#4e73df',
+                              border: '1px solid rgba(78, 115, 223, 0.3)',
+                              cursor: !isGameStarted(game.gameDate) ? 'pointer' : 'default',
+                              width: '60px',
+                              padding: '4px 8px',
+                              fontFamily: 'monospace',
+                              fontSize: '0.95rem',
+                              textAlign: 'center',
+                              fontWeight: '600'
+                            }}
+                            onClick={(e) => {
+                              if (!isGameStarted(game.gameDate)) {
+                                e.stopPropagation();
+                                startEditing(game);
+                              }
+                            }}
+                          >
+                            {game.predictedHomeScore}:{game.predictedAwayScore}
+                          </span>
+                        ) : (
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            style={{ minWidth: '38px', padding: '4px 8px' }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              startEditing(game);
+                            }}
+                            title="Typuj"
+                          >
+                            <i className="fas fa-plus"></i>
+                          </Button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>

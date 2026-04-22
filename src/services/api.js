@@ -72,7 +72,7 @@ export const rankingApi = {
 
 // Compare endpoints
 export const compareApi = {
-  compareWithUser: (userId) => api.get(`/compare/${userId}`)
+  compareWithUser: (userId, leagueId) => api.get(`/compare/${userId}?leagueId=${leagueId}`)
 };
 
 // Chat endpoints

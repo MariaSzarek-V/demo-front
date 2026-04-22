@@ -2,22 +2,32 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Card, Table, Button, Badge } from 'react-bootstrap';
 import { compareApi } from '../services/api';
+import { useLeague } from '../contexts/LeagueContext';
 
 function Compare() {
   const { userId } = useParams();
   const navigate = useNavigate();
+  const { selectedLeague } = useLeague();
   const [compareData, setCompareData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    loadCompareData();
-  }, [userId]);
+    if (selectedLeague) {
+      loadCompareData();
+    }
+  }, [userId, selectedLeague]);
 
   const loadCompareData = async () => {
+    if (!selectedLeague) {
+      setError('Nie wybrano ligi');
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await compareApi.compareWithUser(userId);
+      const response = await compareApi.compareWithUser(userId, selectedLeague.id);
       setCompareData(response.data);
       setLoading(false);
     } catch (err) {
