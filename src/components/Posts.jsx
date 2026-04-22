@@ -38,19 +38,25 @@ function Posts() {
   const [showReactionPicker, setShowReactionPicker] = useState(null);
   const [showMoreReactionsPicker, setShowMoreReactionsPicker] = useState(null);
   const [showReactionsModal, setShowReactionsModal] = useState(null);
+  const [reactionsPopoverPosition, setReactionsPopoverPosition] = useState({ top: 0, left: 0 });
 
   // Reactions - comments
   const [showCommentReactionPicker, setShowCommentReactionPicker] = useState(null);
   const [showCommentMoreReactionsPicker, setShowCommentMoreReactionsPicker] = useState(null);
   const [showCommentReactionsModal, setShowCommentReactionsModal] = useState(null);
+  const [commentReactionsPopoverPosition, setCommentReactionsPopoverPosition] = useState({ top: 0, left: 0 });
+
+  // Screen size detection
+  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 768);
 
   // Comments - now inline per post
   const [expandedComments, setExpandedComments] = useState(new Set());
   const [postComments, setPostComments] = useState({});
   const [newCommentText, setNewCommentText] = useState({});
   const [loadingComments, setLoadingComments] = useState({});
-  const [replyingToComment, setReplyingToComment] = useState({});  // { postId: comment }
   const [quotingComment, setQuotingComment] = useState({});  // { postId: comment }
+  const [editingComment, setEditingComment] = useState({});  // { postId: comment }
+  const [editCommentText, setEditCommentText] = useState({});  // { postId: text }
 
   const reactionPickerRef = useRef(null);
   const moreReactionsPickerRef = useRef(null);
@@ -67,6 +73,16 @@ function Posts() {
       loadPosts();
     }
   }, [selectedLeague]);
+
+  // Screen resize listener
+  useEffect(() => {
+    const handleResize = () => {
+      setIsLargeScreen(window.innerWidth >= 768);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Infinite scroll
   useEffect(() => {
@@ -319,11 +335,6 @@ function Posts() {
         text: commentText.trim()
       };
 
-      // Add parent comment if replying
-      if (replyingToComment[postId]) {
-        commentData.parentCommentId = replyingToComment[postId].id;
-      }
-
       // Add quoted comment if quoting
       if (quotingComment[postId]) {
         commentData.quotedCommentId = quotingComment[postId].id;
@@ -332,11 +343,6 @@ function Posts() {
       await commentApi.createComment(postId, commentData);
 
       setNewCommentText(prev => ({ ...prev, [postId]: '' }));
-      setReplyingToComment(prev => {
-        const updated = { ...prev };
-        delete updated[postId];
-        return updated;
-      });
       setQuotingComment(prev => {
         const updated = { ...prev };
         delete updated[postId];
@@ -351,6 +357,49 @@ function Posts() {
     } catch (err) {
       console.error('Error adding comment:', err);
       alert('Nie udało się dodać komentarza');
+    }
+  };
+
+  const handleUpdateComment = async (postId, commentId) => {
+    const text = editCommentText[postId];
+    if (!text || !text.trim()) return;
+
+    try {
+      await commentApi.updateComment(commentId, { text: text.trim() });
+
+      setEditingComment(prev => {
+        const updated = { ...prev };
+        delete updated[postId];
+        return updated;
+      });
+      setEditCommentText(prev => {
+        const updated = { ...prev };
+        delete updated[postId];
+        return updated;
+      });
+
+      await loadComments(postId);
+    } catch (err) {
+      console.error('Error updating comment:', err);
+      alert('Nie udało się zaktualizować komentarza');
+    }
+  };
+
+  const handleDeleteComment = async (postId, commentId) => {
+    if (!window.confirm('Czy na pewno chcesz usunąć ten komentarz?')) {
+      return;
+    }
+
+    try {
+      await commentApi.deleteComment(commentId);
+      await loadComments(postId);
+
+      // Update comments count in post
+      const response = await postApi.getPostById(postId);
+      setPosts(prev => prev.map(p => p.id === postId ? response.data : p));
+    } catch (err) {
+      console.error('Error deleting comment:', err);
+      alert('Nie udało się usunąć komentarza');
     }
   };
 
@@ -377,6 +426,45 @@ function Posts() {
 
   const handleCommentMoreReactionEmojiClick = async (emojiObject, commentId, postId) => {
     await handleCommentReaction(commentId, postId, emojiObject.emoji);
+  };
+
+  const handleShowReactionsPopover = (event, reactions, isComment = false) => {
+    const button = event.currentTarget;
+    const rect = button.getBoundingClientRect();
+    const scrollY = window.scrollY || window.pageYOffset;
+    const scrollX = window.scrollX || window.pageXOffset;
+
+    // Calculate position for popover
+    const popoverWidth = 300;
+    const popoverHeight = Math.min(reactions.length * 60 + 60, 400);
+
+    // Prefer showing above the button
+    let top = rect.top + scrollY - popoverHeight - 10;
+    let showAbove = true;
+
+    // If not enough space above, show below
+    if (top < scrollY + 10) {
+      top = rect.bottom + scrollY + 10;
+      showAbove = false;
+    }
+
+    // Center horizontally relative to button, but keep within screen bounds
+    let left = rect.left + scrollX + (rect.width / 2) - (popoverWidth / 2);
+
+    // Ensure popover doesn't go off screen horizontally
+    if (left < scrollX + 10) {
+      left = scrollX + 10;
+    } else if (left + popoverWidth > scrollX + window.innerWidth - 10) {
+      left = scrollX + window.innerWidth - popoverWidth - 10;
+    }
+
+    const position = { top, left, showAbove, buttonLeft: rect.left + scrollX + (rect.width / 2) };
+
+    if (isComment) {
+      setCommentReactionsPopoverPosition(position);
+    } else {
+      setReactionsPopoverPosition(position);
+    }
   };
 
   const formatDate = (dateString) => {
@@ -647,7 +735,14 @@ function Posts() {
                   <div className="ms-auto">
                     <button
                       className="btn btn-sm btn-light d-flex align-items-center gap-1"
-                      onClick={() => setShowReactionsModal({ reactions: post.reactions })}
+                      onClick={(e) => {
+                        if (isLargeScreen) {
+                          handleShowReactionsPopover(e, post.reactions, false);
+                          setShowReactionsModal({ reactions: post.reactions, postId: post.id });
+                        } else {
+                          setShowReactionsModal({ reactions: post.reactions, postId: post.id });
+                        }
+                      }}
                       style={{ fontSize: '1rem', maxWidth: '110px', overflow: 'hidden' }}
                     >
                       {/* First 2 emoji */}
@@ -676,8 +771,8 @@ function Posts() {
                 <div className="p-3">
                   {/* Add Comment Form */}
                   <Form onSubmit={(e) => handleAddComment(e, post.id)} className="mb-3">
-                    {/* Reply/Quote indicator */}
-                    {(replyingToComment[post.id] || quotingComment[post.id]) && (
+                    {/* Quote indicator */}
+                    {quotingComment[post.id] && (
                       <div
                         style={{
                           backgroundColor: '#f0f0f0',
@@ -691,21 +786,14 @@ function Posts() {
                         }}
                       >
                         <div>
-                          <strong>
-                            {replyingToComment[post.id] ? '↩️ Odpowiadasz na komentarz: ' : '💬 Cytujesz komentarz: '}
-                          </strong>
+                          <strong>💬 Cytujesz komentarz: </strong>
                           <span style={{ color: '#666' }}>
-                            {(replyingToComment[post.id] || quotingComment[post.id])?.username}
+                            {quotingComment[post.id]?.username}
                           </span>
                         </div>
                         <button
                           type="button"
                           onClick={() => {
-                            setReplyingToComment(prev => {
-                              const updated = { ...prev };
-                              delete updated[post.id];
-                              return updated;
-                            });
                             setQuotingComment(prev => {
                               const updated = { ...prev };
                               delete updated[post.id];
@@ -766,7 +854,7 @@ function Posts() {
                         }}
                       >
                         {(postComments[post.id] || []).map(comment => (
-                          <Card key={comment.id} className="mb-2 shadow-sm">
+                          <Card key={comment.id} id={`comment-${comment.id}`} className="mb-2 shadow-sm">
                             <Card.Body className="py-2 px-3">
                               <div className="d-flex align-items-start">
                                 <div className="me-2">
@@ -778,14 +866,71 @@ function Posts() {
                                   </div>
                                 </div>
                                 <div className="flex-grow-1">
-                                  <div>
-                                    <span className="fw-bold me-2">{comment.username}</span>
-                                    <small className="text-muted">{formatDate(comment.createdAt)}</small>
+                                  <div className="d-flex justify-content-between align-items-center">
+                                    <div>
+                                      <span className="fw-bold me-2">{comment.username}</span>
+                                      <small className="text-muted">
+                                        {formatDate(comment.createdAt)}
+                                        {comment.updatedAt && (
+                                          <span className="ms-1" title={`Edytowano: ${formatDate(comment.updatedAt)}`}>
+                                            (edytowano)
+                                          </span>
+                                        )}
+                                      </small>
+                                    </div>
+                                    {user?.username === comment.username && !editingComment[post.id] && (
+                                      <div className="d-flex gap-2">
+                                        <button
+                                          onClick={() => {
+                                            setEditingComment(prev => ({ ...prev, [post.id]: comment }));
+                                            setEditCommentText(prev => ({ ...prev, [post.id]: comment.text }));
+                                          }}
+                                          style={{
+                                            backgroundColor: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: '2px',
+                                            fontSize: '0.9rem',
+                                            color: '#4e73df'
+                                          }}
+                                          title="Edytuj komentarz"
+                                        >
+                                          <i className="fas fa-edit"></i>
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteComment(post.id, comment.id)}
+                                          style={{
+                                            backgroundColor: 'transparent',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            padding: '2px',
+                                            fontSize: '0.9rem',
+                                            color: '#e74a3b'
+                                          }}
+                                          title="Usuń komentarz"
+                                        >
+                                          <i className="fas fa-trash"></i>
+                                        </button>
+                                      </div>
+                                    )}
                                   </div>
 
                                   {/* Quoted comment display */}
                                   {comment.quotedCommentText && (
                                     <div
+                                      onClick={() => {
+                                        const element = document.getElementById(`comment-${comment.quotedCommentId}`);
+                                        if (element) {
+                                          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                          // Highlight effect
+                                          const originalBg = element.style.backgroundColor;
+                                          element.style.backgroundColor = '#fff3cd';
+                                          element.style.transition = 'background-color 0.3s';
+                                          setTimeout(() => {
+                                            element.style.backgroundColor = originalBg;
+                                          }, 2000);
+                                        }
+                                      }}
                                       style={{
                                         backgroundColor: '#f8f9fa',
                                         borderLeft: '3px solid #6c757d',
@@ -793,8 +938,12 @@ function Posts() {
                                         marginTop: '6px',
                                         marginBottom: '6px',
                                         borderRadius: '4px',
-                                        fontSize: '0.85rem'
+                                        fontSize: '0.85rem',
+                                        cursor: 'pointer',
+                                        transition: 'background-color 0.2s'
                                       }}
+                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
+                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
                                     >
                                       <div style={{ fontWeight: 'bold', marginBottom: '2px', color: '#495057' }}>
                                         {comment.quotedCommentUsername}
@@ -814,21 +963,32 @@ function Posts() {
                                     </div>
                                   )}
 
-                                  {/* Parent comment indicator */}
-                                  {comment.parentCommentText && !comment.quotedCommentText && (
-                                    <div
-                                      style={{
-                                        fontSize: '0.8rem',
-                                        color: '#858796',
-                                        marginTop: '4px',
-                                        marginBottom: '4px'
-                                      }}
-                                    >
-                                      ↩️ <strong>{comment.parentCommentUsername}</strong>
-                                    </div>
+                                  {editingComment[post.id]?.id === comment.id ? (
+                                    <Form onSubmit={(e) => {
+                                      e.preventDefault();
+                                      handleUpdateComment(post.id, comment.id);
+                                    }}>
+                                      <Form.Control
+                                        as="textarea"
+                                        rows={2}
+                                        value={editCommentText[post.id] || ''}
+                                        onChange={(e) => setEditCommentText(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                        className="mb-2"
+                                      />
+                                      <div className="d-flex gap-2">
+                                        <Button size="sm" variant="primary" type="submit">Zapisz</Button>
+                                        <Button size="sm" variant="secondary" onClick={() => {
+                                          setEditingComment(prev => {
+                                            const updated = { ...prev };
+                                            delete updated[post.id];
+                                            return updated;
+                                          });
+                                        }}>Anuluj</Button>
+                                      </div>
+                                    </Form>
+                                  ) : (
+                                    <p className="mb-0 mt-1">{comment.text}</p>
                                   )}
-
-                                  <p className="mb-0 mt-1">{comment.text}</p>
 
                                   {/* Comment Reactions */}
                                   <div className="d-flex align-items-center gap-2 mt-2">
@@ -888,33 +1048,6 @@ function Posts() {
                                               {emoji}
                                             </button>
                                           ))}
-                                          {/* Reply button */}
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              setReplyingToComment(prev => ({ ...prev, [post.id]: comment }));
-                                              setQuotingComment(prev => {
-                                                const updated = { ...prev };
-                                                delete updated[post.id];
-                                                return updated;
-                                              });
-                                              setShowCommentReactionPicker(null);
-                                            }}
-                                            style={{
-                                              backgroundColor: 'transparent',
-                                              border: 'none',
-                                              fontSize: '1.2rem',
-                                              cursor: 'pointer',
-                                              padding: '4px',
-                                              transition: 'transform 0.2s',
-                                              color: '#858796'
-                                            }}
-                                            onMouseEnter={(e) => e.target.style.transform = 'scale(1.3)'}
-                                            onMouseLeave={(e) => e.target.style.transform = 'scale(1)'}
-                                            title="Odpowiedz"
-                                          >
-                                            ↩️
-                                          </button>
                                           {/* Quote button */}
                                           <button
                                             onClick={(e) => {
@@ -991,7 +1124,14 @@ function Posts() {
                                     {comment.reactions && comment.reactions.length > 0 && (
                                       <button
                                         className="btn btn-sm btn-light d-flex align-items-center gap-1"
-                                        onClick={() => setShowCommentReactionsModal({ reactions: comment.reactions })}
+                                        onClick={(e) => {
+                                          if (isLargeScreen) {
+                                            handleShowReactionsPopover(e, comment.reactions, true);
+                                            setShowCommentReactionsModal({ reactions: comment.reactions, commentId: comment.id });
+                                          } else {
+                                            setShowCommentReactionsModal({ reactions: comment.reactions, commentId: comment.id });
+                                          }
+                                        }}
                                         style={{ fontSize: '0.85rem', maxWidth: '110px', overflow: 'hidden' }}
                                       >
                                         {/* First 2 emoji */}
@@ -1216,11 +1356,26 @@ function Posts() {
         />
       )}
 
-{/* Post Reactions Modal */}
+{/* Post Reactions Modal/Popover */}
       {showReactionsModal && (
         <div
           ref={reactionsModalRef}
-          style={{
+          style={isLargeScreen ? {
+            // Popover style for large screens
+            position: 'absolute',
+            top: `${reactionsPopoverPosition.top}px`,
+            left: `${reactionsPopoverPosition.left}px`,
+            width: '300px',
+            maxHeight: '400px',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.1)',
+            zIndex: 1050,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          } : {
+            // Modal style for small screens
             position: 'fixed',
             bottom: 0,
             left: '50%',
@@ -1236,17 +1391,39 @@ function Posts() {
             flexDirection: 'column'
           }}
         >
+          {/* Arrow for popover on large screens */}
+          {isLargeScreen && reactionsPopoverPosition.showAbove !== undefined && (
+            <div
+              style={{
+                position: 'absolute',
+                width: 0,
+                height: 0,
+                borderLeft: '10px solid transparent',
+                borderRight: '10px solid transparent',
+                [reactionsPopoverPosition.showAbove ? 'bottom' : 'top']: '-10px',
+                left: `${reactionsPopoverPosition.buttonLeft - reactionsPopoverPosition.left - 10}px`,
+                ...(reactionsPopoverPosition.showAbove ? {
+                  borderTop: '10px solid white',
+                  filter: 'drop-shadow(0 2px 1px rgba(0,0,0,0.1))'
+                } : {
+                  borderBottom: '10px solid white',
+                  filter: 'drop-shadow(0 -2px 1px rgba(0,0,0,0.1))'
+                })
+              }}
+            />
+          )}
+
           {/* Header */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '16px 20px',
+              padding: isLargeScreen ? '12px 16px' : '16px 20px',
               borderBottom: '1px solid #e3e6f0'
             }}
           >
-            <h6 style={{ margin: 0, fontSize: 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
+            <h6 style={{ margin: 0, fontSize: isLargeScreen ? '0.95rem' : 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
               Reakcje ({showReactionsModal.reactions?.length || 0})
             </h6>
             <button
@@ -1254,12 +1431,12 @@ function Posts() {
               style={{
                 backgroundColor: 'transparent',
                 border: 'none',
-                fontSize: '1.5rem',
+                fontSize: '1.3rem',
                 cursor: 'pointer',
                 color: '#858796',
                 padding: '0',
-                width: '30px',
-                height: '30px',
+                width: '24px',
+                height: '24px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -1270,7 +1447,7 @@ function Posts() {
           </div>
 
           {/* Users list */}
-          <div style={{ overflowY: 'auto', padding: '12px 20px' }}>
+          <div style={{ overflowY: 'auto', padding: isLargeScreen ? '8px 16px' : '12px 20px' }}>
             {(() => {
               // Group reactions by username
               const userReactions = {};
@@ -1288,22 +1465,22 @@ function Posts() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    padding: '12px 0',
+                    padding: isLargeScreen ? '8px 0' : '12px 0',
                     borderBottom: index < Object.keys(userReactions).length - 1 ? '1px solid #f0f0f0' : 'none'
                   }}
                 >
                   {/* Avatar placeholder */}
                   <div
                     style={{
-                      width: '40px',
-                      height: '40px',
+                      width: isLargeScreen ? '32px' : '40px',
+                      height: isLargeScreen ? '32px' : '40px',
                       borderRadius: '50%',
                       backgroundColor: '#0891b2',
                       color: 'white',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1rem',
+                      fontSize: isLargeScreen ? '0.85rem' : '1rem',
                       fontWeight: 'bold',
                       marginRight: '12px',
                       flexShrink: 0
@@ -1313,12 +1490,12 @@ function Posts() {
                   </div>
 
                   {/* Username */}
-                  <div style={{ flex: 1, fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
+                  <div style={{ flex: 1, fontSize: isLargeScreen ? '0.9rem' : 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
                     {username}
                   </div>
 
                   {/* All emojis for this user */}
-                  <div style={{ display: 'flex', gap: '6px', fontSize: '1.5rem', marginLeft: '8px' }}>
+                  <div style={{ display: 'flex', gap: '4px', fontSize: isLargeScreen ? '1.3rem' : '1.5rem', marginLeft: '8px' }}>
                     {emojis.map((emoji, emojiIndex) => (
                       <span key={emojiIndex}>{emoji}</span>
                     ))}
@@ -1330,11 +1507,26 @@ function Posts() {
         </div>
       )}
 
-      {/* Comment Reactions Modal */}
+      {/* Comment Reactions Modal/Popover */}
       {showCommentReactionsModal && (
         <div
           ref={commentReactionsModalRef}
-          style={{
+          style={isLargeScreen ? {
+            // Popover style for large screens
+            position: 'absolute',
+            top: `${commentReactionsPopoverPosition.top}px`,
+            left: `${commentReactionsPopoverPosition.left}px`,
+            width: '300px',
+            maxHeight: '400px',
+            backgroundColor: 'white',
+            borderRadius: '12px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.1)',
+            zIndex: 1050,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden'
+          } : {
+            // Modal style for small screens
             position: 'fixed',
             bottom: 0,
             left: '50%',
@@ -1350,17 +1542,39 @@ function Posts() {
             flexDirection: 'column'
           }}
         >
+          {/* Arrow for popover on large screens */}
+          {isLargeScreen && commentReactionsPopoverPosition.showAbove !== undefined && (
+            <div
+              style={{
+                position: 'absolute',
+                width: 0,
+                height: 0,
+                borderLeft: '10px solid transparent',
+                borderRight: '10px solid transparent',
+                [commentReactionsPopoverPosition.showAbove ? 'bottom' : 'top']: '-10px',
+                left: `${commentReactionsPopoverPosition.buttonLeft - commentReactionsPopoverPosition.left - 10}px`,
+                ...(commentReactionsPopoverPosition.showAbove ? {
+                  borderTop: '10px solid white',
+                  filter: 'drop-shadow(0 2px 1px rgba(0,0,0,0.1))'
+                } : {
+                  borderBottom: '10px solid white',
+                  filter: 'drop-shadow(0 -2px 1px rgba(0,0,0,0.1))'
+                })
+              }}
+            />
+          )}
+
           {/* Header */}
           <div
             style={{
               display: 'flex',
               justifyContent: 'space-between',
               alignItems: 'center',
-              padding: '16px 20px',
+              padding: isLargeScreen ? '12px 16px' : '16px 20px',
               borderBottom: '1px solid #e3e6f0'
             }}
           >
-            <h6 style={{ margin: 0, fontSize: 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
+            <h6 style={{ margin: 0, fontSize: isLargeScreen ? '0.95rem' : 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
               Reakcje ({showCommentReactionsModal.reactions?.length || 0})
             </h6>
             <button
@@ -1368,12 +1582,12 @@ function Posts() {
               style={{
                 backgroundColor: 'transparent',
                 border: 'none',
-                fontSize: '1.5rem',
+                fontSize: '1.3rem',
                 cursor: 'pointer',
                 color: '#858796',
                 padding: '0',
-                width: '30px',
-                height: '30px',
+                width: '24px',
+                height: '24px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center'
@@ -1384,7 +1598,7 @@ function Posts() {
           </div>
 
           {/* Users list */}
-          <div style={{ overflowY: 'auto', padding: '12px 20px' }}>
+          <div style={{ overflowY: 'auto', padding: isLargeScreen ? '8px 16px' : '12px 20px' }}>
             {(() => {
               // Group reactions by username
               const userReactions = {};
@@ -1402,22 +1616,22 @@ function Posts() {
                   style={{
                     display: 'flex',
                     alignItems: 'center',
-                    padding: '12px 0',
+                    padding: isLargeScreen ? '8px 0' : '12px 0',
                     borderBottom: index < Object.keys(userReactions).length - 1 ? '1px solid #f0f0f0' : 'none'
                   }}
                 >
                   {/* Avatar placeholder */}
                   <div
                     style={{
-                      width: '40px',
-                      height: '40px',
+                      width: isLargeScreen ? '32px' : '40px',
+                      height: isLargeScreen ? '32px' : '40px',
                       borderRadius: '50%',
                       backgroundColor: '#0891b2',
                       color: 'white',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      fontSize: '1rem',
+                      fontSize: isLargeScreen ? '0.85rem' : '1rem',
                       fontWeight: 'bold',
                       marginRight: '12px',
                       flexShrink: 0
@@ -1427,12 +1641,12 @@ function Posts() {
                   </div>
 
                   {/* Username */}
-                  <div style={{ flex: 1, fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
+                  <div style={{ flex: 1, fontSize: isLargeScreen ? '0.9rem' : 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
                     {username}
                   </div>
 
                   {/* All emojis for this user */}
-                  <div style={{ display: 'flex', gap: '6px', fontSize: '1.5rem', marginLeft: '8px' }}>
+                  <div style={{ display: 'flex', gap: '4px', fontSize: isLargeScreen ? '1.3rem' : '1.5rem', marginLeft: '8px' }}>
                     {emojis.map((emoji, emojiIndex) => (
                       <span key={emojiIndex}>{emoji}</span>
                     ))}

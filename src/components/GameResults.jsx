@@ -129,6 +129,12 @@ function GameResults() {
     ).join(' ');
   };
 
+  const getPointsColor = (points) => {
+    if (points === 3) return { bg: '#28a745', text: 'white' }; // green
+    if (points === 1) return { bg: '#ffc107', text: '#000' }; // yellow
+    return { bg: '#dc3545', text: 'white' }; // red
+  };
+
   const chartData = gameStats ? {
     labels: ['3 pkt', '1 pkt', '0 pkt'],
     datasets: [{
@@ -504,9 +510,13 @@ function GameResults() {
                       style={{
                         fontSize: '0.9rem',
                         width: '70px',
-                        textAlign: 'right',
+                        textAlign: 'center',
                         flexShrink: 0,
-                        color: '#000000'
+                        backgroundColor: getPointsColor(row.points).bg,
+                        color: getPointsColor(row.points).text,
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontWeight: 'bold'
                       }}
                     >
                       {row.points} pkt
@@ -655,9 +665,13 @@ function GameResults() {
                       style={{
                         fontSize: '0.9rem',
                         width: '60px',
-                        textAlign: 'right',
+                        textAlign: 'center',
                         flexShrink: 0,
-                        color: '#000000'
+                        backgroundColor: getPointsColor(row.points).bg,
+                        color: getPointsColor(row.points).text,
+                        padding: '4px 8px',
+                        borderRadius: '4px',
+                        fontWeight: 'bold'
                       }}
                     >
                       {row.points} pkt

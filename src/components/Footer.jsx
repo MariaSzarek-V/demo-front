@@ -8,11 +8,6 @@ function Footer() {
           </div>
         </div>
       </footer>
-
-      {/* Scroll to Top Button - also hidden on mobile */}
-      <a className="scroll-to-top rounded d-none d-md-block" href="#page-top">
-        <i className="fas fa-angle-up"></i>
-      </a>
     </>
   );
 }

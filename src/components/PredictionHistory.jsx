@@ -13,7 +13,13 @@ function PredictionHistory() {
   const [predictions, setPredictions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [stats, setStats] = useState({ totalPoints: 0, totalGames: 0 });
+  const [stats, setStats] = useState({
+    totalPoints: 0,
+    totalGames: 0,
+    exactScores: 0,
+    correctOutcome: 0,
+    misses: 0
+  });
 
   console.log('PredictionHistory render:', { loading, error, selectedLeague, predictionsCount: predictions.length });
 
@@ -37,7 +43,13 @@ function PredictionHistory() {
       // Calculate statistics
       const totalPoints = response.data?.reduce((sum, p) => sum + (p.points || 0), 0) || 0;
       const totalGames = response.data?.length || 0;
-      setStats({ totalPoints, totalGames });
+
+      // Count predictions by points
+      const exactScores = response.data?.filter(p => p.points === 3).length || 0;
+      const correctOutcome = response.data?.filter(p => p.points === 1).length || 0;
+      const misses = response.data?.filter(p => p.points === 0).length || 0;
+
+      setStats({ totalPoints, totalGames, exactScores, correctOutcome, misses });
 
       setLoading(false);
     } catch (err) {
@@ -69,18 +81,10 @@ function PredictionHistory() {
     });
   };
 
-  const getPointsBadgeVariant = (points) => {
-    if (points === 5) return 'success';
-    if (points === 3) return 'info';
+  const getPointsBadgeColor = (points) => {
+    if (points === 3) return 'success';
     if (points === 1) return 'warning';
-    return 'secondary';
-  };
-
-  const getPointsLabel = (points) => {
-    if (points === 5) return 'Dokładny wynik';
-    if (points === 3) return 'Trafiony wynik';
-    if (points === 1) return 'Różnica bramek';
-    return 'Brak trafienia';
+    return 'danger';
   };
 
   if (loading) {
@@ -154,97 +158,101 @@ function PredictionHistory() {
               </h4>
               <small className="text-muted">Średnia punktów/mecz</small>
             </div>
+            <div className="border-start border-2 border-secondary"></div>
+            <div>
+              <div className="mb-2 d-flex flex-column align-items-center" style={{ borderBottom: '2px solid #ddd', paddingBottom: '8px' }}>
+                <div className="fw-bold" style={{ fontSize: '0.875rem', color: '#28a745' }}>
+                  {stats.exactScores} x 3 pkt
+                </div>
+                <div className="text-warning fw-bold" style={{ fontSize: '0.875rem' }}>
+                  {stats.correctOutcome} x 1 pkt
+                </div>
+                <div className="text-danger fw-bold" style={{ fontSize: '0.875rem' }}>
+                  {stats.misses} x 0 pkt
+                </div>
+              </div>
+              <small className="text-muted">Szczegóły punktacji</small>
+            </div>
           </div>
         </Card.Body>
       </Card>
 
-      {/* Predictions Table */}
+      {/* Predictions List */}
       {predictions && predictions.length > 0 ? (
-        <Card className="shadow">
+        <Card className="border-start border-success border-4 shadow" style={{ borderRadius: '0.375rem', overflow: 'hidden' }}>
           <Card.Body className="p-0">
-            <Table responsive hover className="mb-0">
-              <thead className="table-light">
-                <tr>
-                  <th style={{ width: '15%' }}>Data meczu</th>
-                  <th style={{ width: '30%' }}>Mecz</th>
-                  <th style={{ width: '12%', textAlign: 'center' }}>Wynik</th>
-                  <th style={{ width: '12%', textAlign: 'center' }}>Typ</th>
-                  <th style={{ width: '15%', textAlign: 'center' }}>Punkty</th>
-                  <th style={{ width: '16%', textAlign: 'center' }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {predictions.map((pred) => (
-                  <tr
-                    key={pred.gameId}
-                    style={{ cursor: pred.gameStatus === 'FINISHED' ? 'pointer' : 'default' }}
-                    onClick={() => {
-                      if (pred.gameStatus === 'FINISHED') {
-                        navigate(`/results/${pred.gameId}`);
-                      }
-                    }}
-                  >
-                    <td>
-                      <small className="text-muted">
-                        {formatDate(pred.gameDate)}
-                      </small>
-                    </td>
-                    <td>
-                      <div className="d-flex align-items-center">
-                        <span className={`fi fi-${pred.homeCountryCode?.toLowerCase()} me-2`}></span>
-                        <strong>{pred.homeTeam}</strong>
-                        <span className="mx-2 text-muted">-</span>
-                        <strong>{pred.awayTeam}</strong>
-                        <span className={`fi fi-${pred.awayCountryCode?.toLowerCase()} ms-2`}></span>
-                      </div>
-                    </td>
-                    <td className="text-center">
-                      {pred.actualHomeScore !== null && pred.actualHomeScore !== undefined ? (
-                        <strong className="text-primary" style={{ fontFamily: 'monospace', fontSize: '1.1rem' }}>
-                          {pred.actualHomeScore}:{pred.actualAwayScore}
-                        </strong>
-                      ) : (
-                        <span className="text-muted">-:-</span>
-                      )}
-                    </td>
-                    <td className="text-center">
-                      <strong style={{ fontFamily: 'monospace', fontSize: '1rem', color: '#4e73df' }}>
-                        {pred.predictedHomeScore}:{pred.predictedAwayScore}
-                      </strong>
-                    </td>
-                    <td className="text-center">
-                      {pred.gameStatus === 'FINISHED' ? (
-                        <>
-                          <Badge
-                            bg={getPointsBadgeVariant(pred.points)}
-                            className="me-2"
-                            style={{ fontSize: '0.9rem', padding: '0.4em 0.6em' }}
-                          >
-                            {pred.points || 0} pkt
-                          </Badge>
-                          <div>
-                            <small className="text-muted">
-                              {getPointsLabel(pred.points)}
-                            </small>
+            <div className="table-responsive">
+              <Table hover className="mb-0">
+                <tbody>
+                  {predictions.map((pred) => {
+                    const isFinished = pred.gameStatus === 'FINISHED';
+
+                    return (
+                      <tr
+                        key={pred.gameId}
+                        style={{
+                          cursor: isFinished ? 'pointer' : 'default',
+                          transition: 'all 0.2s ease'
+                        }}
+                        onClick={() => {
+                          if (isFinished) {
+                            navigate(`/results/${pred.gameId}`);
+                          }
+                        }}
+                        onMouseEnter={(e) => {
+                          if (isFinished) {
+                            e.currentTarget.style.transform = 'scale(1.01)';
+                            e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)';
+                          }
+                        }}
+                        onMouseLeave={(e) => {
+                          if (isFinished) {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = 'none';
+                          }
+                        }}
+                      >
+                        {/* Game Info with Date and Result */}
+                        <td className="text-center align-middle">
+                          <small className="text-muted d-block mb-1">
+                            {formatDate(pred.gameDate)}
+                          </small>
+                          <div className="d-flex align-items-center justify-content-center gap-1">
+                            <strong style={{ flex: '1', textAlign: 'right' }}>{pred.homeTeam}</strong>
+                            <span className={`fi fi-${pred.homeCountryCode?.toLowerCase()}`} style={{ flexShrink: 0 }}></span>
+                            <strong className="text-primary" style={{ fontSize: '1.1rem', minWidth: '50px' }}>
+                              {pred.actualHomeScore !== null && pred.actualHomeScore !== undefined
+                                ? `${pred.actualHomeScore} : ${pred.actualAwayScore}`
+                                : '- : -'}
+                            </strong>
+                            <span className={`fi fi-${pred.awayCountryCode?.toLowerCase()}`} style={{ flexShrink: 0 }}></span>
+                            <strong style={{ flex: '1', textAlign: 'left' }}>{pred.awayTeam}</strong>
                           </div>
-                        </>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td className="text-center">
-                      {pred.gameStatus === 'FINISHED' ? (
-                        <Badge bg="success">Zakończony</Badge>
-                      ) : pred.gameStatus === 'SCHEDULED' ? (
-                        <Badge bg="info">Zaplanowany</Badge>
-                      ) : (
-                        <Badge bg="secondary">{pred.gameStatus}</Badge>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </Table>
+                        </td>
+
+                        {/* My Prediction */}
+                        <td className="text-center align-middle" style={{ width: '15%' }}>
+                          <div className="fw-bold" style={{ fontSize: '1rem' }}>
+                            {pred.predictedHomeScore}:{pred.predictedAwayScore}
+                          </div>
+                        </td>
+
+                        {/* Points */}
+                        <td className="text-center align-middle" style={{ width: '15%' }}>
+                          {isFinished ? (
+                            <Badge bg={getPointsBadgeColor(pred.points)}>
+                              {pred.points || 0} pkt
+                            </Badge>
+                          ) : (
+                            <span className="text-muted">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </Table>
+            </div>
           </Card.Body>
         </Card>
       ) : (
