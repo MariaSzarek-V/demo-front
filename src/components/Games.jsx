@@ -590,11 +590,6 @@ function Games() {
                             bg={game.prediction.points === 3 ? 'success' : game.prediction.points === 1 ? 'warning' : 'secondary'}
                           >
                             {game.prediction.points} pkt
-                            {game.gameStatus === 'FINISHED' && game.cumulativePoints !== undefined && (
-                              <span style={{ marginLeft: '4px', fontSize: '0.85em', opacity: 0.9 }}>
-                                (suma: {game.cumulativePoints})
-                              </span>
-                            )}
                           </Badge>
                         )}
 

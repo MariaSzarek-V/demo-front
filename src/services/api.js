@@ -113,7 +113,16 @@ export const postApi = {
   updatePost: (id, data) => api.put(`/posts/${id}`, data),
   deletePost: (id) => api.delete(`/posts/${id}`),
   addReaction: (postId, emoji) => api.post(`/posts/${postId}/reactions?emoji=${encodeURIComponent(emoji)}`),
-  removeReaction: (postId, emoji) => api.delete(`/posts/${postId}/reactions?emoji=${encodeURIComponent(emoji)}`)
+  removeReaction: (postId, emoji) => api.delete(`/posts/${postId}/reactions?emoji=${encodeURIComponent(emoji)}`),
+  uploadImage: (file) => {
+    const formData = new FormData();
+    formData.append('image', file);
+    return api.post('/posts/upload-image', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    });
+  }
 };
 
 // Post Comments endpoints

@@ -23,9 +23,11 @@ function Posts() {
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
   const [newPostGifUrl, setNewPostGifUrl] = useState('');
+  const [newPostImageUrl, setNewPostImageUrl] = useState('');
   const [showGifPicker, setShowGifPicker] = useState(false);
   const [showEmojiPickerForPost, setShowEmojiPickerForPost] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   // Edit post
   const [editingPost, setEditingPost] = useState(null);
@@ -33,6 +35,7 @@ function Posts() {
   const [editPostTitle, setEditPostTitle] = useState('');
   const [editPostContent, setEditPostContent] = useState('');
   const [editPostGifUrl, setEditPostGifUrl] = useState('');
+  const [editPostImageUrl, setEditPostImageUrl] = useState('');
 
   // Reactions - posts
   const [showReactionPicker, setShowReactionPicker] = useState(null);
@@ -187,6 +190,7 @@ function Posts() {
         title: newPostTitle.trim(),
         content: newPostContent.trim(),
         gifUrl: newPostGifUrl.trim() || null,
+        imageUrl: newPostImageUrl.trim() || null,
         leagueId: selectedLeague?.id
       };
 
@@ -199,6 +203,7 @@ function Posts() {
       setNewPostTitle('');
       setNewPostContent('');
       setNewPostGifUrl('');
+      setNewPostImageUrl('');
       setShowNewPostModal(false);
     } catch (err) {
       console.error('Error creating post:', err);
@@ -213,6 +218,7 @@ function Posts() {
     setEditPostTitle(post.title);
     setEditPostContent(post.content);
     setEditPostGifUrl(post.gifUrl || '');
+    setEditPostImageUrl(post.imageUrl || '');
     setShowEditPostModal(true);
   };
 
@@ -229,6 +235,7 @@ function Posts() {
         title: editPostTitle.trim(),
         content: editPostContent.trim(),
         gifUrl: editPostGifUrl.trim() || null,
+        imageUrl: editPostImageUrl.trim() || null,
         leagueId: selectedLeague?.id
       };
 
@@ -242,6 +249,7 @@ function Posts() {
       setEditPostTitle('');
       setEditPostContent('');
       setEditPostGifUrl('');
+      setEditPostImageUrl('');
       setShowEditPostModal(false);
     } catch (err) {
       console.error('Error updating post:', err);
@@ -262,6 +270,42 @@ function Posts() {
     } catch (err) {
       console.error('Error deleting post:', err);
       alert('Nie udało się usunąć posta');
+    }
+  };
+
+  const handlePaste = async (e, isEditing = false) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+
+      // Check if item is an image
+      if (item.type.startsWith('image/')) {
+        e.preventDefault(); // Prevent default paste behavior
+
+        const file = item.getAsFile();
+        if (!file) continue;
+
+        try {
+          setUploadingImage(true);
+          const response = await postApi.uploadImage(file);
+          const imageUrl = response.data.imageUrl;
+
+          if (isEditing) {
+            setEditPostImageUrl(imageUrl);
+          } else {
+            setNewPostImageUrl(imageUrl);
+          }
+        } catch (err) {
+          console.error('Error uploading image:', err);
+          alert('Nie udało się wgrać obrazu');
+        } finally {
+          setUploadingImage(false);
+        }
+
+        break; // Only handle first image
+      }
     }
   };
 
@@ -599,6 +643,15 @@ function Posts() {
 
               <h5 className="mb-2" style={{ color: '#000' }}><strong>{post.title}</strong></h5>
               <p className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
+
+              {post.imageUrl && (
+                <img
+                  src={post.imageUrl}
+                  alt="Post image"
+                  className="img-fluid rounded mb-2"
+                  style={{ maxHeight: '400px' }}
+                />
+              )}
 
               {post.gifUrl && (
                 <img
@@ -1207,9 +1260,18 @@ function Posts() {
                 rows={6}
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
-                placeholder="Wpisz treść posta..."
+                onPaste={(e) => handlePaste(e, false)}
+                placeholder="Wpisz treść posta... (możesz wkleić obraz Ctrl+V)"
                 required
               />
+              {uploadingImage && (
+                <small className="text-muted d-block mt-1">
+                  <div className="spinner-border spinner-border-sm me-2" role="status">
+                    <span className="visually-hidden">Uploading...</span>
+                  </div>
+                  Wgrywanie obrazu...
+                </small>
+              )}
             </Form.Group>
 
             {/* Emoji and GIF Buttons */}
@@ -1240,6 +1302,16 @@ function Posts() {
                   Usuń GIF
                 </Button>
               )}
+              {newPostImageUrl && (
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={() => setNewPostImageUrl('')}
+                  type="button"
+                >
+                  Usuń obraz
+                </Button>
+              )}
             </div>
 
             {/* Emoji Picker for Post Content */}
@@ -1262,6 +1334,18 @@ function Posts() {
                 <img
                   src={newPostGifUrl}
                   alt="Selected GIF"
+                  className="img-fluid rounded"
+                  style={{ maxHeight: '300px' }}
+                />
+              </div>
+            )}
+
+            {/* Image Preview */}
+            {newPostImageUrl && (
+              <div className="mb-3">
+                <img
+                  src={newPostImageUrl}
+                  alt="Uploaded image"
                   className="img-fluid rounded"
                   style={{ maxHeight: '300px' }}
                 />
@@ -1310,9 +1394,18 @@ function Posts() {
                 rows={6}
                 value={editPostContent}
                 onChange={(e) => setEditPostContent(e.target.value)}
-                placeholder="Wpisz treść posta..."
+                onPaste={(e) => handlePaste(e, true)}
+                placeholder="Wpisz treść posta... (możesz wkleić obraz Ctrl+V)"
                 required
               />
+              {uploadingImage && (
+                <small className="text-muted d-block mt-1">
+                  <div className="spinner-border spinner-border-sm me-2" role="status">
+                    <span className="visually-hidden">Uploading...</span>
+                  </div>
+                  Wgrywanie obrazu...
+                </small>
+              )}
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -1324,6 +1417,31 @@ function Posts() {
                 placeholder="https://..."
               />
             </Form.Group>
+
+            {/* Image Preview for Edit */}
+            {editPostImageUrl && (
+              <div className="mb-3">
+                <Form.Label>Wgrany obraz</Form.Label>
+                <div>
+                  <img
+                    src={editPostImageUrl}
+                    alt="Uploaded image"
+                    className="img-fluid rounded"
+                    style={{ maxHeight: '300px' }}
+                  />
+                  <div className="mt-2">
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => setEditPostImageUrl('')}
+                      type="button"
+                    >
+                      Usuń obraz
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="d-flex justify-content-end gap-2">
               <Button variant="secondary" onClick={() => setShowEditPostModal(false)}>
