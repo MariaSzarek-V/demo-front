@@ -65,6 +65,7 @@ function RankingChart({ currentUser }) {
   // State do wyszukiwania użytkowników
   const [searchTerm, setSearchTerm] = useState('');
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [searchedUsernames, setSearchedUsernames] = useState(new Set());
 
   // Inicjalizuj widoczność użytkowników gdy dane się załadują
   useEffect(() => {
@@ -115,6 +116,7 @@ function RankingChart({ currentUser }) {
       return acc;
     }, {});
     setVisibleUsers(newVisibility);
+    setSearchedUsernames(new Set());
   };
 
   const hideAll = () => {
@@ -132,17 +134,33 @@ function RankingChart({ currentUser }) {
 
   // Obsługa wyboru użytkownika z podpowiedzi
   const handleSelectUser = (username) => {
-    // Ukryj wszystkich
-    const newVisibility = allUsersHistory.reduce((acc, user) => {
-      acc[user.username] = false;
-      return acc;
-    }, {});
-    // Pokaż wybranego użytkownika i obecnego
-    newVisibility[username] = true;
-    newVisibility[currentUsername] = true;
-    setVisibleUsers(newVisibility);
+    const allVisible = Object.values(visibleUsers).every(v => v);
+
+    if (allVisible) {
+      // Wszyscy widoczni → przejdź w tryb filtrowany: tylko wybrany + zalogowany
+      const newVisibility = allUsersHistory.reduce((acc, user) => {
+        acc[user.username] = user.username === username || user.username === currentUsername;
+        return acc;
+      }, {});
+      setVisibleUsers(newVisibility);
+      setSearchedUsernames(new Set([username, currentUsername].filter(u => u)));
+    } else {
+      // Tryb filtrowany → dodaj gracza do widocznych
+      setVisibleUsers(prev => ({ ...prev, [username]: true }));
+      setSearchedUsernames(prev => new Set([...prev, username]));
+    }
+
     setSearchTerm('');
     setShowSuggestions(false);
+  };
+
+  const removeUser = (username) => {
+    setSearchedUsernames(prev => {
+      const next = new Set(prev);
+      next.delete(username);
+      return next;
+    });
+    setVisibleUsers(prev => ({ ...prev, [username]: false }));
   };
 
   const data = useMemo(() => {
@@ -282,11 +300,6 @@ function RankingChart({ currentUser }) {
 
   return (
     <div style={{ width: '100%', position: 'relative', padding: '20px' }}>
-      {/* Tytuł */}
-      <div className="text-xs fw-bold text-success text-uppercase mb-2">
-        📈 Historia pozycji w rankingu
-      </div>
-
       {/* Wykres */}
       <div style={{ width: '100%', height: '300px', position: 'relative' }}>
         <Line data={data} options={options} />
@@ -355,7 +368,10 @@ function RankingChart({ currentUser }) {
               return (
                 <div
                   key={user.username}
-                  onClick={() => handleSelectUser(user.username)}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleSelectUser(user.username);
+                  }}
                   style={{
                     padding: '8px 12px',
                     cursor: 'pointer',
@@ -430,47 +446,65 @@ function RankingChart({ currentUser }) {
         </button>
       </div>
 
-      {/* Interaktywna legenda */}
-      <div className="mt-2 d-flex flex-wrap gap-2 justify-content-center" style={{ maxWidth: '100%' }}>
-        {[...allUsersHistory].sort((a, b) => a.username.localeCompare(b.username)).map((user) => {
-          const isCurrentUser = user.username === currentUsername;
-          const color = isCurrentUser ? '#e74a3b' : getUserColor(user.username);
-          const isVisible = visibleUsers[user.username];
+      {/* Interaktywna legenda — tylko wyszukani gracze */}
+      {searchedUsernames.size > 0 && (
+        <div className="mt-2 d-flex flex-wrap gap-2 justify-content-center" style={{ maxWidth: '100%' }}>
+          {[...allUsersHistory]
+            .filter(user => searchedUsernames.has(user.username))
+            .sort((a, b) => a.username.localeCompare(b.username))
+            .map((user) => {
+              const isCurrentUser = user.username === currentUsername;
+              const color = isCurrentUser ? '#e74a3b' : getUserColor(user.username);
+              const isVisible = visibleUsers[user.username];
 
-          return (
-            <button
-              key={user.username}
-              onClick={() => toggleUser(user.username)}
-              onMouseEnter={() => setHoveredUser(user.username)}
-              onMouseLeave={() => setHoveredUser(null)}
-              className="btn btn-sm d-flex align-items-center gap-2"
-              style={{
-                backgroundColor: isVisible ? color : '#e3e6f0',
-                color: isVisible ? '#fff' : '#858796',
-                border: 'none',
-                opacity: isVisible ? 1 : 0.5,
-                fontWeight: isCurrentUser ? 'bold' : 'normal',
-                transition: 'all 0.2s ease',
-                padding: '4px 12px',
-                fontSize: '0.875rem',
-                whiteSpace: 'nowrap'
-              }}
-            >
-              <span
-                style={{
-                  width: '20px',
-                  height: isCurrentUser ? '4px' : '2px',
-                  backgroundColor: isVisible ? '#fff' : '#858796',
-                  display: 'inline-block',
-                  borderRadius: '2px',
-                  flexShrink: 0
-                }}
-              ></span>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.username}</span>
-            </button>
-          );
-        })}
-      </div>
+              return (
+                <button
+                  key={user.username}
+                  onClick={() => toggleUser(user.username)}
+                  onMouseEnter={() => setHoveredUser(user.username)}
+                  onMouseLeave={() => setHoveredUser(null)}
+                  className="btn btn-sm d-flex align-items-center gap-2"
+                  style={{
+                    backgroundColor: isVisible ? color : '#e3e6f0',
+                    color: isVisible ? '#fff' : '#858796',
+                    border: 'none',
+                    opacity: isVisible ? 1 : 0.5,
+                    fontWeight: isCurrentUser ? 'bold' : 'normal',
+                    transition: 'all 0.2s ease',
+                    padding: '4px 10px',
+                    fontSize: '0.875rem',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  <span
+                    style={{
+                      width: '20px',
+                      height: isCurrentUser ? '4px' : '2px',
+                      backgroundColor: isVisible ? '#fff' : '#858796',
+                      display: 'inline-block',
+                      borderRadius: '2px',
+                      flexShrink: 0
+                    }}
+                  ></span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.username}</span>
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeUser(user.username);
+                    }}
+                    style={{
+                      marginLeft: '2px',
+                      fontSize: '1rem',
+                      lineHeight: 1,
+                      opacity: 0.7,
+                      cursor: 'pointer'
+                    }}
+                  >×</span>
+                </button>
+              );
+            })}
+        </div>
+      )}
     </div>
   );
 }

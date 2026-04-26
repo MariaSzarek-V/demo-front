@@ -233,7 +233,7 @@ function PredictionPatternChart() {
       {/* Wykres */}
       <Card className="shadow mb-4">
         <Card.Header className="py-3">
-          <h6 className="m-0 fw-bold text-primary">
+          <h6 className="m-0 fw-bold text-primary text-uppercase">
             📊 Twój profil typowania vs Rzeczywistość
           </h6>
         </Card.Header>
@@ -275,7 +275,7 @@ function PredictionPatternChart() {
       {/* Sugestie */}
       <Card className="shadow mb-4">
         <Card.Header className="py-3">
-          <h6 className="m-0 fw-bold text-success">
+          <h6 className="m-0 fw-bold text-success text-uppercase">
             💡 Sugestie jak ulepszyć swoje typy
           </h6>
         </Card.Header>

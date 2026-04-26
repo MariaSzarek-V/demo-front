@@ -475,7 +475,7 @@ function Games() {
                   </div>
 
                   {/* Typ i przyciski - nowy wiersz na mobile */}
-                  <div className="d-flex align-items-center justify-content-center flex-wrap" style={{ gap: '8px', position: 'relative' }}>
+                  <div style={{ position: 'relative', width: '100%' }}>
                     {/* Tryb edycji - pokaż inputy */}
                     {editingGameId === (game.id || game.gameId) ? (
                       <div className="d-flex flex-column align-items-center gap-2" style={{ width: '100%' }}>
@@ -555,12 +555,14 @@ function Games() {
                         </div>
                       </div>
                     ) : (
-                      <>
-                        {/* Środek - typ i punkty wyśrodkowane */}
+                      <div style={{ position: 'relative', height: '32px', width: '100%' }}>
                         {game.prediction && (
                           <span
-                            className="me-2"
                             style={{
+                              position: 'absolute',
+                              left: '50%',
+                              top: '50%',
+                              transform: 'translate(-50%, -50%)',
                               backgroundColor: 'rgba(78, 115, 223, 0.15)',
                               color: '#4e73df',
                               border: '1px solid rgba(78, 115, 223, 0.3)',
@@ -586,26 +588,27 @@ function Games() {
                         )}
 
                         {game.prediction?.points !== undefined && game.prediction?.points !== null && (
-                          <Badge
-                            bg={game.prediction.points === 3 ? 'success' : game.prediction.points === 1 ? 'warning' : 'secondary'}
-                          >
-                            {game.prediction.points} pkt
-                          </Badge>
+                          <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
+                            <Badge bg={game.prediction.points === 3 ? 'success' : game.prediction.points === 1 ? 'warning' : 'danger'}>
+                              {game.prediction.points} pkt
+                            </Badge>
+                          </div>
                         )}
 
-                        {/* Przycisk typuj dla nowych typów */}
                         {!game.prediction && game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) && (
-                          <Button
-                            variant="outline-primary"
-                            size="sm"
-                            style={{ minWidth: '38px', padding: '4px 8px' }}
-                            onClick={() => startEditing(game)}
-                            title="Typuj"
-                          >
-                            <i className="fas fa-plus"></i>
-                          </Button>
+                          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)' }}>
+                            <Button
+                              variant="outline-primary"
+                              size="sm"
+                              style={{ minWidth: '38px', padding: '4px 8px' }}
+                              onClick={() => startEditing(game)}
+                              title="Typuj"
+                            >
+                              <i className="fas fa-plus"></i>
+                            </Button>
+                          </div>
                         )}
-                      </>
+                      </div>
                     )}
                   </div>
                 </div>

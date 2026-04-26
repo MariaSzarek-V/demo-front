@@ -148,7 +148,6 @@ function Dashboard() {
         exactMatches: 0,
         partialMatches: 0,
         noMatches: 0,
-        almostPerfect: 0
       };
     }
 
@@ -157,41 +156,27 @@ function Dashboard() {
     let exactMatches = 0;
     let partialMatches = 0;
     let noMatches = 0;
-    let almostPerfect = 0;
 
     results.forEach(result => {
       const predictionKey = `${result.predictedHomeScore}:${result.predictedAwayScore}`;
       predictionCounts[predictionKey] = (predictionCounts[predictionKey] || 0) + 1;
 
-      // Count points
-      if (result.points === 3) {
-        exactMatches++;
-      } else if (result.points === 1) {
-        partialMatches++;
-      } else if (result.points === 0) {
-        noMatches++;
-
-        // Check if almost perfect (1 goal difference from exact)
-        const homeDiff = Math.abs(result.predictedHomeScore - result.homeScore);
-        const awayDiff = Math.abs(result.predictedAwayScore - result.awayScore);
-        if (homeDiff + awayDiff === 1) {
-          almostPerfect++;
-        }
-      }
+      if (result.points === 3) exactMatches++;
+      else if (result.points === 1) partialMatches++;
+      else noMatches++;
     });
 
     // Get TOP 3 most frequent predictions
     const topPredictions = Object.entries(predictionCounts)
-      .sort((a, b) => b[1] - a[1]) // Sort by count descending
-      .slice(0, 3) // Take top 3
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
       .map(([prediction, count]) => ({ prediction, count }));
 
     return {
       topPredictions,
       exactMatches,
       partialMatches,
-      noMatches,
-      almostPerfect
+      noMatches
     };
   };
 
@@ -229,48 +214,35 @@ function Dashboard() {
   const prepareMiniRanking = (ranking, currentUsername) => {
     if (!ranking || ranking.length === 0) return [];
 
-    const top3 = ranking.slice(0, 3).map(r => ({
+    const toEntry = (r) => ({
       position: r.position,
       username: r.username,
+      userId: r.userId,
       totalPoints: r.totalPoints,
       isCurrentUser: r.username === currentUsername
-    }));
+    });
 
-    // Check if current user is in top 3
-    const userInTop3 = top3.some(r => r.isCurrentUser);
+    const n = ranking.length;
+    const userIndex = ranking.findIndex(r => r.username === currentUsername);
 
-    // Get last person in ranking
-    const lastPerson = ranking.length > 3 ? ranking[ranking.length - 1] : null;
-    const lastPersonIsCurrentUser = lastPerson && lastPerson.username === currentUsername;
-    const lastPersonIsInTop3 = lastPerson && top3.some(r => r.username === lastPerson.username);
+    const idxSet = new Set();
+    idxSet.add(0); // first
 
-    // Build result
-    const result = [...top3];
-
-    // Add current user if not in top 3
-    if (!userInTop3) {
-      const currentUser = ranking.find(r => r.username === currentUsername);
-      if (currentUser && currentUser.position > 3) {
-        result.push(null); // separator
-        result.push({
-          position: currentUser.position,
-          username: currentUser.username,
-          totalPoints: currentUser.totalPoints,
-          isCurrentUser: true
-        });
-      }
+    if (userIndex !== -1) {
+      if (userIndex - 1 > 0) idxSet.add(userIndex - 1); // person before user (not first)
+      idxSet.add(userIndex);                             // user
+      if (userIndex + 1 < n - 1) idxSet.add(userIndex + 1); // person after user (not last)
     }
 
-    // Add last person if exists, not in top 3, and not already added as current user
-    if (lastPerson && !lastPersonIsInTop3 && !lastPersonIsCurrentUser) {
-      result.push(null); // separator
-      result.push({
-        position: lastPerson.position,
-        username: lastPerson.username,
-        totalPoints: lastPerson.totalPoints,
-        isCurrentUser: false
-      });
-    }
+    if (n > 1) idxSet.add(n - 1); // last
+
+    const sorted = Array.from(idxSet).sort((a, b) => a - b);
+
+    const result = [];
+    sorted.forEach((idx, i) => {
+      if (i > 0 && idx > sorted[i - 1] + 1) result.push(null);
+      result.push(toEntry(ranking[idx]));
+    });
 
     return result;
   };
@@ -506,11 +478,6 @@ function Dashboard() {
                   {stats.exactMatches * 3 + stats.partialMatches * 1} pkt
                 </div>
 
-                {stats.almostPerfect > 0 && (
-                  <div className="text-info fw-bold mt-2" style={{ fontSize: '0.85rem' }}>
-                    😫 {stats.almostPerfect} x prawie trafione
-                  </div>
-                )}
               </div>
 
               <Row className="justify-content-center">
@@ -620,28 +587,28 @@ function Dashboard() {
                           </div>
                         );
                       }
-                      const positionColor =
-                        index === 0
-                          ? 'text-warning'
-                          : index === 1
-                          ? 'text-secondary'
-                          : index === 2
-                          ? 'text-info'
-                          : 'text-dark';
+                      const clickable = !rank.isCurrentUser && rank.userId;
                       return (
                         <div
                           key={rank.position}
-                          className={`p-2 rounded mb-2 ${
-                            rank.isCurrentUser ? 'fw-bold bg-light' : ''
-                          }`}
+                          className={`p-2 rounded mb-2 ${rank.isCurrentUser ? 'fw-bold bg-light' : ''}`}
+                          style={{
+                            cursor: clickable ? 'pointer' : 'default',
+                            transition: 'background-color 0.2s'
+                          }}
+                          onClick={() => clickable && navigate(`/compare/${rank.userId}`)}
+                          onMouseEnter={(e) => {
+                            if (clickable) e.currentTarget.style.backgroundColor = 'rgba(78, 115, 223, 0.08)';
+                          }}
+                          onMouseLeave={(e) => {
+                            if (clickable) e.currentTarget.style.backgroundColor = rank.isCurrentUser ? '' : 'transparent';
+                          }}
                         >
-                          <span className={positionColor}>
+                          <span className="text-dark">
                             #{rank.position}
                           </span>
                           <span
-                            className={`ms-2 ${
-                              rank.isCurrentUser ? 'text-primary' : 'text-dark'
-                            }`}
+                            className={`ms-2 ${rank.isCurrentUser ? 'text-primary' : 'text-dark'}`}
                           >
                             {rank.username}
                           </span>
@@ -970,12 +937,16 @@ function Dashboard() {
                   </div>
 
                   {/* Typ użytkownika i punkty */}
-                  <div className="d-flex align-items-center justify-content-center flex-wrap" style={{ gap: '8px' }}>
+                  <div style={{ position: 'relative', height: '32px', width: '100%' }}>
                     {game.hasPrediction ? (
                       <>
                         <span
                           className="btn btn-sm"
                           style={{
+                            position: 'absolute',
+                            left: '50%',
+                            top: '50%',
+                            transform: 'translate(-50%, -50%)',
                             backgroundColor: 'rgba(78, 115, 223, 0.15)',
                             color: '#4e73df',
                             border: '1px solid rgba(78, 115, 223, 0.3)',
@@ -991,13 +962,15 @@ function Dashboard() {
                           {game.predictedHomeScore}:{game.predictedAwayScore}
                         </span>
                         {game.points !== null && game.points !== undefined && (
-                          <Badge bg={game.points === 3 ? 'success' : game.points === 1 ? 'warning' : 'secondary'}>
-                            {game.points} pkt
-                          </Badge>
+                          <div style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
+                            <Badge bg={game.points === 3 ? 'success' : game.points === 1 ? 'warning' : 'danger'}>
+                              {game.points} pkt
+                            </Badge>
+                          </div>
                         )}
                       </>
                     ) : (
-                      <small className="text-muted">
+                      <small className="text-muted" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%, -50%)', whiteSpace: 'nowrap' }}>
                         <i className="fas fa-times-circle"></i> Brak typu
                       </small>
                     )}
@@ -1015,6 +988,11 @@ function Dashboard() {
       <Row className="mb-4">
         <Col xs={12}>
           <Card className="border-start border-success border-4 shadow">
+            <Card.Header className="py-3">
+              <h6 className="m-0 fw-bold text-success text-uppercase">
+                📈 Historia pozycji w rankingu
+              </h6>
+            </Card.Header>
             <Card.Body>
               <RankingChart currentUser={stats?.user} />
             </Card.Body>

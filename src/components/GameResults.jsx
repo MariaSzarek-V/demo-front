@@ -130,9 +130,9 @@ function GameResults() {
   };
 
   const getPointsColor = (points) => {
-    if (points === 3) return { bg: '#28a745', text: 'white' }; // green
-    if (points === 1) return { bg: '#ffc107', text: '#000' }; // yellow
-    return { bg: '#dc3545', text: 'white' }; // red
+    if (points === 3) return { bg: '#198754', text: 'white' };
+    if (points === 1) return { bg: '#ffc107', text: '#000' };
+    return { bg: '#dc3545', text: 'white' };
   };
 
   const chartData = gameStats ? {
@@ -140,14 +140,14 @@ function GameResults() {
     datasets: [{
       data: [gameStats.exactScores, gameStats.correctOutcome, gameStats.incorrect],
       backgroundColor: [
-        'rgba(78, 141, 156, 0.8)',
-        'rgba(255, 179, 63, 0.8)',
-        'rgba(192, 7, 7, 0.8)'
+        'rgba(25, 135, 84, 0.8)',
+        'rgba(255, 193, 7, 0.8)',
+        'rgba(220, 53, 69, 0.8)'
       ],
       hoverBackgroundColor: [
-        'rgba(78, 141, 156, 1)',
-        'rgba(255, 179, 63, 1)',
-        'rgba(192, 7, 7, 1)'
+        'rgba(25, 135, 84, 1)',
+        'rgba(255, 193, 7, 1)',
+        'rgba(220, 53, 69, 1)'
       ],
       borderWidth: 2,
       borderColor: '#fff'
