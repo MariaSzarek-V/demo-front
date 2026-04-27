@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Row, Col, Card, Button, Badge, Alert } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
+import { Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, ArcElement, Tooltip, Legend } from 'chart.js';
 import RankingChart from './RankingChart';
 import PredictionPatternChart from './PredictionPatternChart';
+
+ChartJS.register(ArcElement, Tooltip, Legend);
 import { dashboardApi, resultsApi, rankingApi, notificationApi, predictionApi } from '../services/api';
 import { useLeague } from '../contexts/LeagueContext';
 
@@ -455,98 +459,71 @@ function Dashboard() {
             <Card.Body className="py-3">
 
               {/* Punktacja */}
-              <div className="mb-3">
-                <div className="fw-bold" style={{ fontSize: '0.85rem', color: '#28a745' }}>
-                  {stats.exactMatches} x 3 pkt
+              <div className="mb-2">
+                <div className="fw-bold" style={{ fontSize: '0.875rem', color: '#28a745' }}>
+                  {stats.exactMatches} x 3 pkt = {stats.exactMatches * 3} pkt
                 </div>
-                <div className="text-warning fw-bold" style={{ fontSize: '0.85rem' }}>
-                  {stats.partialMatches} x 1 pkt
+                <div className="text-warning fw-bold" style={{ fontSize: '0.875rem' }}>
+                  {stats.partialMatches} x 1 pkt = {stats.partialMatches} pkt
                 </div>
-                <div className="text-danger fw-bold" style={{ fontSize: '0.85rem' }}>
-                  {stats.noMatches} x 0 pkt
+                <div className="text-danger fw-bold" style={{ fontSize: '0.875rem' }}>
+                  {stats.noMatches} x 0 pkt = 0 pkt
                 </div>
-
-                {/* Kreska i podsumowanie */}
-                <div
-                  className="my-2"
-                  style={{
-                    borderTop: '2px solid #e3e6f0',
-                    width: '100%'
-                  }}
-                />
-                <div className="fw-bold text-primary" style={{ fontSize: '0.9rem' }}>
-                  {stats.exactMatches * 3 + stats.partialMatches * 1} pkt
+                <div className="my-2" style={{ borderTop: '2px solid #e3e6f0' }} />
+                <div className="fw-bold text-primary" style={{ fontSize: '1rem' }}>
+                  {stats.exactMatches * 3 + stats.partialMatches} pkt
                 </div>
-
               </div>
 
-              <Row className="justify-content-center">
-                {/* Co typujesz */}
-                <Col xs={6} md={5} className="mb-3">
-                  <div className="fw-bold text-secondary mb-2" style={{ fontSize: '0.85rem' }}>
-                    Co typujesz
-                  </div>
-                  {stats.topPredictions && stats.topPredictions.length > 0 ? (
-                    stats.topPredictions.map((item, index) => (
-                      <div
-                        key={index}
-                        className="d-flex align-items-center mb-2"
-                      >
-                        <span
-                          className="me-2 fw-bold"
-                          style={{
-                            color: index === 0 ? '#f6c23e' : index === 1 ? '#858796' : '#4e73df',
-                            fontSize: '0.85rem'
-                          }}
-                        >
-                          #{index + 1}
-                        </span>
-                        <strong className="me-2" style={{ fontSize: '0.9rem' }}>{item.prediction}</strong>
-                        <strong className="text-muted" style={{ fontSize: '0.85rem' }}>
-                          ({item.count}x)
-                        </strong>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
-                      Brak typowań
-                    </p>
-                  )}
-                </Col>
-
-                {/* Rzeczywiste wyniki */}
-                <Col xs={6} md={5} className="mb-3">
-                  <div className="fw-bold text-secondary mb-2" style={{ fontSize: '0.85rem' }}>
-                    Wyniki meczów
-                  </div>
-                  {stats.realResultsStats && stats.realResultsStats.topRealResults && stats.realResultsStats.topRealResults.length > 0 ? (
-                    stats.realResultsStats.topRealResults.map((item, index) => (
-                      <div
-                        key={index}
-                        className="d-flex align-items-center mb-2"
-                      >
-                        <span
-                          className="me-2 fw-bold"
-                          style={{
-                            color: index === 0 ? '#f6c23e' : index === 1 ? '#858796' : '#4e73df',
-                            fontSize: '0.85rem'
-                          }}
-                        >
-                          #{index + 1}
-                        </span>
-                        <strong className="me-2" style={{ fontSize: '0.9rem' }}>{item.result}</strong>
-                        <strong className="text-muted" style={{ fontSize: '0.85rem' }}>
-                          ({item.count}x)
-                        </strong>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted mb-0" style={{ fontSize: '0.85rem' }}>
-                      Brak danych
-                    </p>
-                  )}
-                </Col>
-              </Row>
+              {/* Doughnut chart - styl gry */}
+              {(stats.exactMatches + stats.partialMatches + stats.noMatches) > 0 && (() => {
+                const total = stats.exactMatches + stats.partialMatches + stats.noMatches;
+                const pct = (n) => (n / total * 100).toFixed(1);
+                const chartData = {
+                  labels: [`3 pkt (${pct(stats.exactMatches)}%)`, `1 pkt (${pct(stats.partialMatches)}%)`, `0 pkt (${pct(stats.noMatches)}%)`],
+                  datasets: [{
+                    data: [stats.exactMatches, stats.partialMatches, stats.noMatches],
+                    backgroundColor: ['#28a745', '#f6c23e', '#e74a3b'],
+                    borderColor: '#fff',
+                    borderWidth: 2
+                  }]
+                };
+                const chartOptions = {
+                  responsive: true,
+                  maintainAspectRatio: false,
+                  plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                      callbacks: {
+                        label: (ctx) => {
+                          const p = (ctx.parsed / total * 100).toFixed(1);
+                          return ` ${ctx.label.split(' (')[0]}: ${ctx.parsed} meczów (${p}%)`;
+                        }
+                      }
+                    }
+                  }
+                };
+                const legendItems = [
+                  { color: '#28a745', label: `3 pkt — ${pct(stats.exactMatches)}%` },
+                  { color: '#f6c23e', label: `1 pkt — ${pct(stats.partialMatches)}%` },
+                  { color: '#e74a3b', label: `0 pkt — ${pct(stats.noMatches)}%` },
+                ];
+                return (
+                  <>
+                    <div style={{ height: '200px' }}>
+                      <Pie data={chartData} options={chartOptions} />
+                    </div>
+                    <div className="d-flex justify-content-center gap-3 mt-2 flex-wrap">
+                      {legendItems.map(({ color, label }) => (
+                        <div key={label} className="d-flex align-items-center gap-1" style={{ fontSize: '0.82rem' }}>
+                          <div style={{ width: '12px', height: '12px', borderRadius: '2px', backgroundColor: color, flexShrink: 0 }} />
+                          <span style={{ color: '#5a5c69' }}>{label}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
 
               {/* Historia typowania button */}
               <div className="mt-3 text-center">
@@ -800,18 +777,11 @@ function Dashboard() {
                       <>
                         {game.hasPrediction ? (
                           <span
-                            className="btn btn-sm"
+                            className="btn btn-outline-primary btn-sm"
                             style={{
-                              backgroundColor: 'rgba(78, 115, 223, 0.15)',
-                              color: '#4e73df',
-                              border: '1px solid rgba(78, 115, 223, 0.3)',
                               cursor: !isGameStarted(game.gameDate) ? 'pointer' : 'default',
-                              width: '60px',
-                              padding: '4px 8px',
-                              fontFamily: 'monospace',
-                              fontSize: '0.95rem',
-                              textAlign: 'center',
-                              fontWeight: '600'
+                              minWidth: '60px',
+                              fontFamily: 'monospace'
                             }}
                             onClick={(e) => {
                               if (!isGameStarted(game.gameDate)) {
@@ -941,22 +911,14 @@ function Dashboard() {
                     {game.hasPrediction ? (
                       <>
                         <span
-                          className="btn btn-sm"
+                          className="btn btn-outline-primary btn-sm"
                           style={{
                             position: 'absolute',
                             left: '50%',
                             top: '50%',
                             transform: 'translate(-50%, -50%)',
-                            backgroundColor: 'rgba(78, 115, 223, 0.15)',
-                            color: '#4e73df',
-                            border: '1px solid rgba(78, 115, 223, 0.3)',
-                            cursor: 'default',
-                            width: '60px',
-                            padding: '4px 8px',
-                            fontFamily: 'monospace',
-                            fontSize: '0.95rem',
-                            textAlign: 'center',
-                            fontWeight: '600'
+                            minWidth: '60px',
+                            fontFamily: 'monospace'
                           }}
                         >
                           {game.predictedHomeScore}:{game.predictedAwayScore}

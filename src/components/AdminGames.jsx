@@ -268,15 +268,17 @@ function AdminGames() {
                     >
                       <i className="fas fa-edit"></i>
                     </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      style={{ minWidth: '38px', padding: '4px 8px' }}
-                      onClick={() => handleDelete(game.id)}
-                      title="Usuń mecz"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </Button>
+                    {game.gameStatus !== 'FINISHED' && game.gameStatus !== 'SCHEDULED' && (
+                      <Button
+                        variant="danger"
+                        size="sm"
+                        style={{ minWidth: '38px', padding: '4px 8px' }}
+                        onClick={() => handleDelete(game.id)}
+                        title="Usuń mecz"
+                      >
+                        <i className="fas fa-trash"></i>
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}

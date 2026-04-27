@@ -127,12 +127,8 @@ function PredictionHistory() {
 
   return (
     <Container fluid className="px-2 px-md-4 px-lg-5 content-container-narrow">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="m-0">
-          <i className="fas fa-history me-2 text-primary"></i>
-          Historia typowania
-        </h2>
-        <Button variant="outline-secondary" onClick={() => navigate('/dashboard')}>
+      <div className="d-flex justify-content-end mb-4">
+        <Button variant="outline-secondary" size="sm" onClick={() => navigate('/dashboard')}>
           <i className="fas fa-arrow-left me-2"></i>
           Powrót
         </Button>
@@ -145,11 +141,6 @@ function PredictionHistory() {
             <div>
               <h4 className="text-primary mb-0">{stats.totalGames}</h4>
               <small className="text-muted">Wytypowanych meczów</small>
-            </div>
-            <div className="border-start border-2 border-secondary"></div>
-            <div>
-              <h4 className="text-success mb-0">{stats.totalPoints}</h4>
-              <small className="text-muted">Łączna liczba punktów</small>
             </div>
             <div className="border-start border-2 border-secondary"></div>
             <div>
@@ -176,6 +167,66 @@ function PredictionHistory() {
           </div>
         </Card.Body>
       </Card>
+
+      {/* Score Frequency Card */}
+      {predictions && predictions.length > 0 && (() => {
+        const predFreq = {};
+        const actualFreq = {};
+
+        predictions.forEach(p => {
+          const predKey = `${p.predictedHomeScore}:${p.predictedAwayScore}`;
+          predFreq[predKey] = (predFreq[predKey] || 0) + 1;
+
+          if (p.actualHomeScore !== null && p.actualHomeScore !== undefined) {
+            const actualKey = `${p.actualHomeScore}:${p.actualAwayScore}`;
+            actualFreq[actualKey] = (actualFreq[actualKey] || 0) + 1;
+          }
+        });
+
+        const topPred = Object.entries(predFreq).sort((a, b) => b[1] - a[1]);
+        const topActual = Object.entries(actualFreq).sort((a, b) => b[1] - a[1]);
+
+        return (
+          <Card className="mb-4 shadow border-start border-primary border-4" style={{ borderRadius: '0.375rem', overflow: 'hidden' }}>
+            <Card.Body>
+              <div className="row">
+                <div className="col-6">
+                  <h6 className="text-muted mb-3">
+                    <i className="fas fa-crosshairs me-2 text-primary"></i>
+                    Najczęściej typowane wyniki
+                  </h6>
+                  <ol className="list-unstyled mb-0">
+                    {topPred.map(([score, count], i) => (
+                      <li key={score} className="d-flex align-items-center mb-2">
+                        <span className="text-muted me-2" style={{ minWidth: '18px', fontSize: '0.8rem' }}>{i + 1}.</span>
+                        <span className="fw-bold text-primary me-2" style={{ minWidth: '48px' }}>{score}</span>
+                        <span className="badge bg-secondary">{count}×</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+                <div className="col-6 border-start">
+                  <h6 className="text-muted mb-3">
+                    <i className="fas fa-futbol me-2 text-success"></i>
+                    Najczęściej padające wyniki
+                  </h6>
+                  <ol className="list-unstyled mb-0">
+                    {topActual.length > 0 ? topActual.map(([score, count], i) => (
+                      <li key={score} className="d-flex align-items-center mb-2">
+                        <span className="text-muted me-2" style={{ minWidth: '18px', fontSize: '0.8rem' }}>{i + 1}.</span>
+                        <span className="fw-bold text-success me-2" style={{ minWidth: '48px' }}>{score}</span>
+                        <span className="badge bg-secondary">{count}×</span>
+                      </li>
+                    )) : (
+                      <li className="text-muted small">Brak zakończonych meczów</li>
+                    )}
+                  </ol>
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        );
+      })()}
 
       {/* Predictions List */}
       {predictions && predictions.length > 0 ? (
@@ -230,22 +281,18 @@ function PredictionHistory() {
                           </div>
                         </td>
 
-                        {/* My Prediction */}
-                        <td className="text-center align-middle" style={{ width: '15%' }}>
-                          <div className="fw-bold" style={{ fontSize: '1rem' }}>
-                            {pred.predictedHomeScore}:{pred.predictedAwayScore}
-                          </div>
-                        </td>
-
-                        {/* Points */}
+                        {/* My Prediction + Points */}
                         <td className="text-center align-middle" style={{ width: '15%' }}>
                           {isFinished ? (
-                            <Badge bg={getPointsBadgeColor(pred.points)}>
+                            <Badge bg={getPointsBadgeColor(pred.points)} className="mb-1">
                               {pred.points || 0} pkt
                             </Badge>
                           ) : (
-                            <span className="text-muted">-</span>
+                            <span className="text-muted d-block mb-1" style={{ fontSize: '0.75rem' }}>—</span>
                           )}
+                          <div className="fw-bold" style={{ fontSize: '1rem' }}>
+                            {pred.predictedHomeScore}:{pred.predictedAwayScore}
+                          </div>
                         </td>
                       </tr>
                     );

@@ -558,23 +558,15 @@ function Games() {
                       <div style={{ position: 'relative', height: '32px', width: '100%' }}>
                         {game.prediction && (
                           <span
+                            className="btn btn-outline-primary btn-sm"
                             style={{
                               position: 'absolute',
                               left: '50%',
                               top: '50%',
                               transform: 'translate(-50%, -50%)',
-                              backgroundColor: 'rgba(78, 115, 223, 0.15)',
-                              color: '#4e73df',
-                              border: '1px solid rgba(78, 115, 223, 0.3)',
                               cursor: game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate) ? 'pointer' : 'default',
-                              width: '60px',
-                              padding: '4px 8px',
-                              fontFamily: 'monospace',
-                              fontSize: '0.95rem',
-                              textAlign: 'center',
-                              fontWeight: '600',
-                              borderRadius: '0.25rem',
-                              display: 'inline-block'
+                              minWidth: '60px',
+                              fontFamily: 'monospace'
                             }}
                             onClick={(e) => {
                               if (game.gameStatus === 'SCHEDULED' && !isGameStarted(game.gameDate)) {

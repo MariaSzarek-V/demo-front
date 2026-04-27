@@ -562,9 +562,11 @@ function Chat() {
                           }}
                         >
                           <button
-                            onClick={() => setShowReactionsModal({ messageId: message.id })}
+                            onClick={() => setShowReactionsModal(showReactionsModal?.messageId === message.id ? null : { messageId: message.id })}
                             style={{
-                              backgroundColor: message.reactions.some(r => r.username === user?.username) ? '#e0f2f1' : 'white',
+                              backgroundColor: message.reactions.some(r => r.username === user?.username)
+                                ? (isMyMessage ? '#b2dfdb' : '#b2ebf2')
+                                : (isMyMessage ? 'rgba(255,255,255,0.85)' : '#e0f7fa'),
                               border: 'none',
                               borderRadius: '10px',
                               padding: '2px 6px',
@@ -588,11 +590,66 @@ function Chat() {
                                 +{groupedReactions.length - 2}
                               </span>
                             )}
-                            {/* Total reactions count */}
-                            <span style={{ fontSize: 'clamp(0.7rem, 1.6vw, 0.8rem)', color: '#666', marginLeft: '2px', fontWeight: '600', flexShrink: 0 }}>
-                              {message.reactions.length}
-                            </span>
                           </button>
+
+                          {/* Teams-style compact reactions dropdown */}
+                          {showReactionsModal?.messageId === message.id && (
+                            <div
+                              ref={reactionsModalRef}
+                              style={{
+                                position: 'absolute',
+                                bottom: 'calc(100% + 4px)',
+                                left: isMyMessage ? 'auto' : '0',
+                                right: isMyMessage ? '0' : 'auto',
+                                width: '240px',
+                                backgroundColor: 'white',
+                                border: '1px solid #e3e6f0',
+                                borderRadius: '8px',
+                                boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                zIndex: 200,
+                                maxHeight: '220px',
+                                overflowY: 'auto',
+                                padding: '4px 0'
+                              }}
+                            >
+                              {(() => {
+                                const currentMessage = messages.find(c => c.id === message.id);
+                                if (!currentMessage?.reactions) return null;
+                                const userReactions = {};
+                                currentMessage.reactions.forEach(reaction => {
+                                  if (!userReactions[reaction.username]) userReactions[reaction.username] = [];
+                                  userReactions[reaction.username].push(reaction.emoji);
+                                });
+                                return Object.entries(userReactions).map(([username, emojis]) => (
+                                  <div
+                                    key={username}
+                                    style={{
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      padding: '5px 10px',
+                                      gap: '8px'
+                                    }}
+                                  >
+                                    <div style={{
+                                      width: '26px', height: '26px', borderRadius: '50%',
+                                      backgroundColor: getUserColor(username),
+                                      color: 'white', display: 'flex', alignItems: 'center',
+                                      justifyContent: 'center', fontSize: '0.75rem',
+                                      fontWeight: 'bold', flexShrink: 0
+                                    }}>
+                                      {username.charAt(0).toUpperCase()}
+                                    </div>
+                                    <span style={{ flex: 1, fontSize: '0.82rem', color: '#5a5c69', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                      {username}
+                                    </span>
+                                    <span style={{ fontSize: '0.95rem', flexShrink: 0 }}>
+                                      {emojis.join('')}
+                                    </span>
+                                  </div>
+                                ));
+                              })()}
+                            </div>
+                          )}
                         </div>
                       )}
 
@@ -967,142 +1024,6 @@ function Chat() {
         )}
       </div>
 
-      {/* Backdrop overlay - przyszarzenie tła */}
-      {showReactionsModal && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            zIndex: 1040,
-            backdropFilter: 'blur(2px)'
-          }}
-          onClick={() => setShowReactionsModal(null)}
-        />
-      )}
-
-      {/* Reactions Modal - wyśrodkowany */}
-      {showReactionsModal && (
-        <div
-          ref={reactionsModalRef}
-          style={{
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: '90%',
-            maxWidth: '500px',
-            backgroundColor: 'white',
-            borderRadius: '16px',
-            boxShadow: '0 4px 30px rgba(0,0,0,0.3)',
-            zIndex: 1050,
-            maxHeight: '70vh',
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-        >
-          {/* Header */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: '16px 20px',
-              borderBottom: '1px solid #e3e6f0'
-            }}
-          >
-            <h6 style={{ margin: 0, fontSize: 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
-              Reakcje {(() => {
-                const currentMessage = messages.find(c => c.id === showReactionsModal.messageId);
-                return currentMessage?.reactions?.length ? `(${currentMessage.reactions.length})` : '';
-              })()}
-            </h6>
-            <button
-              onClick={() => setShowReactionsModal(null)}
-              style={{
-                backgroundColor: 'transparent',
-                border: 'none',
-                fontSize: '1.5rem',
-                cursor: 'pointer',
-                color: '#858796',
-                padding: '0',
-                width: '30px',
-                height: '30px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Users list */}
-          <div style={{ overflowY: 'auto', padding: '12px 20px' }}>
-            {(() => {
-              const currentMessage = messages.find(c => c.id === showReactionsModal.messageId);
-              if (!currentMessage || !currentMessage.reactions) return null;
-
-              // Group reactions by username
-              const userReactions = {};
-              currentMessage.reactions.forEach(reaction => {
-                if (!userReactions[reaction.username]) {
-                  userReactions[reaction.username] = [];
-                }
-                userReactions[reaction.username].push(reaction.emoji);
-              });
-
-              // Show users with all their emojis
-              return Object.entries(userReactions).map(([username, emojis], index) => (
-                <div
-                  key={username}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: '12px 0',
-                    borderBottom: index < Object.keys(userReactions).length - 1 ? '1px solid #f0f0f0' : 'none'
-                  }}
-                >
-                  {/* Avatar placeholder */}
-                  <div
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      backgroundColor: '#0891b2',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '1rem',
-                      fontWeight: 'bold',
-                      marginRight: '12px',
-                      flexShrink: 0
-                    }}
-                  >
-                    {username.charAt(0).toUpperCase()}
-                  </div>
-
-                  {/* Username */}
-                  <div style={{ flex: 1, fontSize: 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
-                    {username}
-                  </div>
-
-                  {/* All emojis for this user */}
-                  <div style={{ display: 'flex', gap: '6px', fontSize: '1.5rem', marginLeft: '8px' }}>
-                    {emojis.map((emoji, emojiIndex) => (
-                      <span key={emojiIndex}>{emoji}</span>
-                    ))}
-                  </div>
-                </div>
-              ));
-            })()}
-          </div>
-        </div>
-      )}
     </Container>
   );
 }

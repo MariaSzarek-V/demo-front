@@ -40,17 +40,12 @@ function Posts() {
   // Reactions - posts
   const [showReactionPicker, setShowReactionPicker] = useState(null);
   const [showMoreReactionsPicker, setShowMoreReactionsPicker] = useState(null);
-  const [showReactionsModal, setShowReactionsModal] = useState(null);
-  const [reactionsPopoverPosition, setReactionsPopoverPosition] = useState({ top: 0, left: 0 });
+  const [showReactionsModal, setShowReactionsModal] = useState(null); // { postId }
 
   // Reactions - comments
   const [showCommentReactionPicker, setShowCommentReactionPicker] = useState(null);
   const [showCommentMoreReactionsPicker, setShowCommentMoreReactionsPicker] = useState(null);
-  const [showCommentReactionsModal, setShowCommentReactionsModal] = useState(null);
-  const [commentReactionsPopoverPosition, setCommentReactionsPopoverPosition] = useState({ top: 0, left: 0 });
-
-  // Screen size detection
-  const [isLargeScreen, setIsLargeScreen] = useState(window.innerWidth >= 768);
+  const [showCommentReactionsModal, setShowCommentReactionsModal] = useState(null); // { commentId }
 
   // Comments - now inline per post
   const [expandedComments, setExpandedComments] = useState(new Set());
@@ -60,6 +55,8 @@ function Posts() {
   const [quotingComment, setQuotingComment] = useState({});  // { postId: comment }
   const [editingComment, setEditingComment] = useState({});  // { postId: comment }
   const [editCommentText, setEditCommentText] = useState({});  // { postId: text }
+  const [inlineReplyingTo, setInlineReplyingTo] = useState({});  // { postId: commentId }
+  const [inlineReplyText, setInlineReplyText] = useState({});  // { postId: text }
 
   const reactionPickerRef = useRef(null);
   const moreReactionsPickerRef = useRef(null);
@@ -76,16 +73,6 @@ function Posts() {
       loadPosts();
     }
   }, [selectedLeague]);
-
-  // Screen resize listener
-  useEffect(() => {
-    const handleResize = () => {
-      setIsLargeScreen(window.innerWidth >= 768);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   // Infinite scroll
   useEffect(() => {
@@ -472,43 +459,29 @@ function Posts() {
     await handleCommentReaction(commentId, postId, emojiObject.emoji);
   };
 
-  const handleShowReactionsPopover = (event, reactions, isComment = false) => {
-    const button = event.currentTarget;
-    const rect = button.getBoundingClientRect();
-    const scrollY = window.scrollY || window.pageYOffset;
-    const scrollX = window.scrollX || window.pageXOffset;
-
-    // Calculate position for popover
-    const popoverWidth = 300;
-    const popoverHeight = Math.min(reactions.length * 60 + 60, 400);
-
-    // Prefer showing above the button
-    let top = rect.top + scrollY - popoverHeight - 10;
-    let showAbove = true;
-
-    // If not enough space above, show below
-    if (top < scrollY + 10) {
-      top = rect.bottom + scrollY + 10;
-      showAbove = false;
+  const handleInlineReply = async (postId, quotedCommentId) => {
+    const text = inlineReplyText[postId];
+    if (!text || !text.trim()) return;
+    try {
+      await commentApi.createComment(postId, { text: text.trim(), quotedCommentId });
+      setInlineReplyText(prev => ({ ...prev, [postId]: '' }));
+      setInlineReplyingTo(prev => { const u = { ...prev }; delete u[postId]; return u; });
+      await loadComments(postId);
+      const response = await postApi.getPostById(postId);
+      setPosts(prev => prev.map(p => p.id === postId ? response.data : p));
+    } catch (err) {
+      console.error('Error adding reply:', err);
+      alert('Nie udało się dodać odpowiedzi');
     }
+  };
 
-    // Center horizontally relative to button, but keep within screen bounds
-    let left = rect.left + scrollX + (rect.width / 2) - (popoverWidth / 2);
-
-    // Ensure popover doesn't go off screen horizontally
-    if (left < scrollX + 10) {
-      left = scrollX + 10;
-    } else if (left + popoverWidth > scrollX + window.innerWidth - 10) {
-      left = scrollX + window.innerWidth - popoverWidth - 10;
+  const getUserColor = (username) => {
+    let hash = 0;
+    for (let i = 0; i < username.length; i++) {
+      hash = username.charCodeAt(i) + ((hash << 5) - hash);
     }
-
-    const position = { top, left, showAbove, buttonLeft: rect.left + scrollX + (rect.width / 2) };
-
-    if (isComment) {
-      setCommentReactionsPopoverPosition(position);
-    } else {
-      setReactionsPopoverPosition(position);
-    }
+    const colors = ['#0891b2','#8b5cf6','#ec4899','#f59e0b','#10b981','#6366f1','#f97316','#14b8a6'];
+    return colors[Math.abs(hash) % colors.length];
   };
 
   const formatDate = (dateString) => {
@@ -534,6 +507,32 @@ function Posts() {
     return Object.values(grouped);
   };
 
+  const buildCommentTree = (comments) => {
+    const sorted = [...comments].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+    const commentMap = {};
+    sorted.forEach(c => { commentMap[c.id] = { ...c, replies: [] }; });
+    const roots = [];
+    const deletedPlaceholders = {};
+    sorted.forEach(c => {
+      if (!c.quotedCommentId) {
+        roots.push(commentMap[c.id]);
+      } else if (commentMap[c.quotedCommentId]) {
+        commentMap[c.quotedCommentId].replies.push(commentMap[c.id]);
+      } else {
+        if (!deletedPlaceholders[c.quotedCommentId]) {
+          deletedPlaceholders[c.quotedCommentId] = {
+            id: c.quotedCommentId,
+            deleted: true,
+            replies: []
+          };
+          roots.push(deletedPlaceholders[c.quotedCommentId]);
+        }
+        deletedPlaceholders[c.quotedCommentId].replies.push(commentMap[c.id]);
+      }
+    });
+    return roots;
+  };
+
   if (loading) {
     return (
       <Container fluid className="h-100 d-flex align-items-center justify-content-center">
@@ -547,7 +546,7 @@ function Posts() {
   return (
     <Container fluid className="content-container content-container-narrow">
       <div className="d-flex justify-content-end align-items-center mb-4">
-        <Button variant="primary" onClick={() => setShowNewPostModal(true)}>
+        <Button variant="primary" size="sm" onClick={() => setShowNewPostModal(true)}>
           <i className="fas fa-plus me-2"></i>
           Nowy post
         </Button>
@@ -574,31 +573,42 @@ function Posts() {
       )}
 
       <div className="posts-list">
-        {posts.map(post => (
-          <Card key={post.id} className="border-start border-info border-4 mb-3 shadow" style={{ backgroundColor: '#f8f9fc' }}>
-            <Card.Body>
-              <div className="d-flex align-items-center mb-2">
+        {posts.map(post => {
+          if (post.deleted) {
+            return (
+              <Card key={post.id} className="border-start border-secondary border-4 mb-2 shadow" style={{ opacity: 0.65 }}>
+                <Card.Body style={{ padding: '0.5rem 0.75rem', color: '#adb5bd', fontStyle: 'italic', fontSize: '0.875rem' }}>
+                  <i className="fas fa-ban me-2" style={{ fontSize: '0.8rem' }}></i>
+                  Post użytkownika <strong style={{ color: '#9ca3af' }}>{post.deletedBy}</strong> został usunięty
+                </Card.Body>
+              </Card>
+            );
+          }
+          return (
+          <Card key={post.id} className="border-start border-info border-4 mb-2 shadow" style={{ backgroundColor: '#f8f9fc' }}>
+            <Card.Body style={{ padding: '0.625rem 0.75rem' }}>
+              <div className="d-flex align-items-center mb-1">
                 <div className="me-2">
                   {post.avatarUrl ? (
                     <img
                       src={post.avatarUrl}
                       alt={post.username}
                       className="rounded-circle"
-                      width="40"
-                      height="40"
+                      width="32"
+                      height="32"
                     />
                   ) : (
                     <div
                       className="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold"
-                      style={{ width: '40px', height: '40px', backgroundColor: '#6c757d' }}
+                      style={{ width: '32px', height: '32px', backgroundColor: '#6c757d', fontSize: '0.8rem' }}
                     >
                       {post.username.charAt(0).toUpperCase()}
                     </div>
                   )}
                 </div>
                 <div className="flex-grow-1">
-                  <div className="fw-bold">{post.username}</div>
-                  <small className="text-muted">
+                  <div className="fw-bold" style={{ fontSize: '0.875rem' }}>{post.username}</div>
+                  <small className="text-muted" style={{ fontSize: '0.75rem' }}>
                     {formatDate(post.createdAt)}
                     {post.updatedAt && (
                       <span className="ms-1" title={`Edytowano: ${formatDate(post.updatedAt)}`}>
@@ -641,8 +651,8 @@ function Posts() {
                 )}
               </div>
 
-              <h5 className="mb-2" style={{ color: '#000' }}><strong>{post.title}</strong></h5>
-              <p className="mb-2" style={{ whiteSpace: 'pre-wrap' }}>{post.content}</p>
+              <div className="mb-1 fw-bold" style={{ color: '#2d3748', fontSize: '0.95rem' }}>{post.title}</div>
+              <p className="mb-2" style={{ whiteSpace: 'pre-wrap', fontSize: '0.875rem', color: '#4a5568' }}>{post.content}</p>
 
               {post.imageUrl && (
                 <img
@@ -662,7 +672,7 @@ function Posts() {
                 />
               )}
 
-              <div className="d-flex align-items-center gap-3 mt-3 pt-2 border-top">
+              <div className="d-flex align-items-center gap-3 mt-2 pt-1 border-top">
                 {/* Reactions */}
                 <div className="position-relative">
                   {/* Reaction Icon Button */}
@@ -785,34 +795,59 @@ function Posts() {
 
                 {/* Reactions display */}
                 {post.reactions.length > 0 && (
-                  <div className="ms-auto">
+                  <div className="ms-auto" style={{ position: 'relative' }}>
                     <button
                       className="btn btn-sm btn-light d-flex align-items-center gap-1"
-                      onClick={(e) => {
-                        if (isLargeScreen) {
-                          handleShowReactionsPopover(e, post.reactions, false);
-                          setShowReactionsModal({ reactions: post.reactions, postId: post.id });
-                        } else {
-                          setShowReactionsModal({ reactions: post.reactions, postId: post.id });
-                        }
-                      }}
+                      onClick={() => setShowReactionsModal(showReactionsModal?.postId === post.id ? null : { postId: post.id })}
                       style={{ fontSize: '1rem', maxWidth: '110px', overflow: 'hidden' }}
                     >
-                      {/* First 2 emoji */}
                       {groupReactions(post.reactions).slice(0, 2).map(({ emoji }) => (
                         <span key={emoji} style={{ fontSize: '1.4rem', flexShrink: 0 }}>{emoji}</span>
                       ))}
-                      {/* Count of remaining emoji types if more than 2 */}
                       {groupReactions(post.reactions).length > 2 && (
                         <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: '600', flexShrink: 0 }}>
                           +{groupReactions(post.reactions).length - 2}
                         </span>
                       )}
-                      {/* Total reactions count */}
-                      <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: '600', flexShrink: 0 }}>
-                        {post.reactions.length}
-                      </span>
                     </button>
+                    {showReactionsModal?.postId === post.id && (
+                      <div
+                        ref={reactionsModalRef}
+                        style={{
+                          position: 'absolute',
+                          bottom: 'calc(100% + 4px)',
+                          right: 0,
+                          width: '240px',
+                          backgroundColor: 'white',
+                          border: '1px solid #e3e6f0',
+                          borderRadius: '8px',
+                          boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                          zIndex: 200,
+                          maxHeight: '220px',
+                          overflowY: 'auto',
+                          padding: '4px 0'
+                        }}
+                      >
+                        {(() => {
+                          const userReactions = {};
+                          post.reactions.forEach(r => {
+                            if (!userReactions[r.username]) userReactions[r.username] = [];
+                            userReactions[r.username].push(r.emoji);
+                          });
+                          return Object.entries(userReactions).map(([username, emojis]) => (
+                            <div key={username} style={{ display: 'flex', alignItems: 'center', padding: '5px 10px', gap: '8px' }}>
+                              <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: getUserColor(username), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>
+                                {username.charAt(0).toUpperCase()}
+                              </div>
+                              <span style={{ flex: 1, fontSize: '0.82rem', color: '#5a5c69', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                {username}
+                              </span>
+                              <span style={{ fontSize: '0.95rem', flexShrink: 0 }}>{emojis.join('')}</span>
+                            </div>
+                          ));
+                        })()}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -821,9 +856,9 @@ function Posts() {
             {/* Inline Comments Section */}
             {expandedComments.has(post.id) && (
               <div className="border-top">
-                <div className="p-3">
+                <div className="p-2">
                   {/* Add Comment Form */}
-                  <Form onSubmit={(e) => handleAddComment(e, post.id)} className="mb-3">
+                  <Form onSubmit={(e) => handleAddComment(e, post.id)} className="mb-2">
                     {/* Quote indicator */}
                     {quotingComment[post.id] && (
                       <div
@@ -897,7 +932,7 @@ function Posts() {
                     </div>
                   ) : (
                     <div>
-                      <h6 className="mb-3">Komentarze ({postComments[post.id]?.length || 0})</h6>
+                      <h6 className="mb-2" style={{ fontSize: '0.8rem' }}>Komentarze ({postComments[post.id]?.length || 0})</h6>
                       <div
                         className="comments-list"
                         style={{
@@ -906,9 +941,33 @@ function Posts() {
                           paddingRight: '10px'
                         }}
                       >
-                        {(postComments[post.id] || []).map(comment => (
-                          <Card key={comment.id} id={`comment-${comment.id}`} className="mb-2 shadow-sm">
-                            <Card.Body className="py-2 px-3">
+                        {(() => {
+                          const commentTree = buildCommentTree(postComments[post.id] || []);
+                          if (commentTree.length === 0) {
+                            return <p className="text-muted text-center py-3">Brak komentarzy</p>;
+                          }
+                          const renderComment = (comment) => {
+                          if (comment.deleted) return (
+                            <div
+                              id={`comment-${comment.id}`}
+                              className="mb-1"
+                              style={{
+                                padding: '5px 10px',
+                                color: '#adb5bd',
+                                fontSize: '0.8rem',
+                                fontStyle: 'italic',
+                                backgroundColor: '#f8f9fc',
+                                border: '1px dashed #dee2e6',
+                                borderRadius: '4px',
+                              }}
+                            >
+                              <i className="fas fa-ban me-1" style={{ fontSize: '0.7rem' }}></i>
+                              Komentarz usunięty
+                            </div>
+                          );
+                          return (
+                          <Card id={`comment-${comment.id}`} className="mb-1 shadow-sm">
+                            <Card.Body className="py-1 px-2">
                               <div className="d-flex align-items-start">
                                 <div className="me-2">
                                   <div
@@ -921,8 +980,8 @@ function Posts() {
                                 <div className="flex-grow-1">
                                   <div className="d-flex justify-content-between align-items-center">
                                     <div>
-                                      <span className="fw-bold me-2">{comment.username}</span>
-                                      <small className="text-muted">
+                                      <span className="fw-bold me-2" style={{ fontSize: '0.8rem' }}>{comment.username}</span>
+                                      <small className="text-muted" style={{ fontSize: '0.75rem' }}>
                                         {formatDate(comment.createdAt)}
                                         {comment.updatedAt && (
                                           <span className="ms-1" title={`Edytowano: ${formatDate(comment.updatedAt)}`}>
@@ -968,54 +1027,6 @@ function Posts() {
                                     )}
                                   </div>
 
-                                  {/* Quoted comment display */}
-                                  {comment.quotedCommentText && (
-                                    <div
-                                      onClick={() => {
-                                        const element = document.getElementById(`comment-${comment.quotedCommentId}`);
-                                        if (element) {
-                                          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                          // Highlight effect
-                                          const originalBg = element.style.backgroundColor;
-                                          element.style.backgroundColor = '#fff3cd';
-                                          element.style.transition = 'background-color 0.3s';
-                                          setTimeout(() => {
-                                            element.style.backgroundColor = originalBg;
-                                          }, 2000);
-                                        }
-                                      }}
-                                      style={{
-                                        backgroundColor: '#f8f9fa',
-                                        borderLeft: '3px solid #6c757d',
-                                        padding: '6px 10px',
-                                        marginTop: '6px',
-                                        marginBottom: '6px',
-                                        borderRadius: '4px',
-                                        fontSize: '0.85rem',
-                                        cursor: 'pointer',
-                                        transition: 'background-color 0.2s'
-                                      }}
-                                      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#e9ecef'}
-                                      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#f8f9fa'}
-                                    >
-                                      <div style={{ fontWeight: 'bold', marginBottom: '2px', color: '#495057' }}>
-                                        {comment.quotedCommentUsername}
-                                      </div>
-                                      <div
-                                        style={{
-                                          color: '#6c757d',
-                                          overflow: 'hidden',
-                                          textOverflow: 'ellipsis',
-                                          display: '-webkit-box',
-                                          WebkitLineClamp: 2,
-                                          WebkitBoxOrient: 'vertical'
-                                        }}
-                                      >
-                                        {comment.quotedCommentText}
-                                      </div>
-                                    </div>
-                                  )}
-
                                   {editingComment[post.id]?.id === comment.id ? (
                                     <Form onSubmit={(e) => {
                                       e.preventDefault();
@@ -1040,7 +1051,7 @@ function Posts() {
                                       </div>
                                     </Form>
                                   ) : (
-                                    <p className="mb-0 mt-1">{comment.text}</p>
+                                    <p className="mb-0 mt-1" style={{ fontSize: '0.875rem' }}>{comment.text}</p>
                                   )}
 
                                   {/* Comment Reactions */}
@@ -1106,11 +1117,6 @@ function Posts() {
                                             onClick={(e) => {
                                               e.stopPropagation();
                                               setQuotingComment(prev => ({ ...prev, [post.id]: comment }));
-                                              setReplyingToComment(prev => {
-                                                const updated = { ...prev };
-                                                delete updated[post.id];
-                                                return updated;
-                                              });
                                               setShowCommentReactionPicker(null);
                                             }}
                                             style={{
@@ -1175,43 +1181,181 @@ function Posts() {
 
                                     {/* Display Grouped Reactions */}
                                     {comment.reactions && comment.reactions.length > 0 && (
-                                      <button
-                                        className="btn btn-sm btn-light d-flex align-items-center gap-1"
-                                        onClick={(e) => {
-                                          if (isLargeScreen) {
-                                            handleShowReactionsPopover(e, comment.reactions, true);
-                                            setShowCommentReactionsModal({ reactions: comment.reactions, commentId: comment.id });
-                                          } else {
-                                            setShowCommentReactionsModal({ reactions: comment.reactions, commentId: comment.id });
-                                          }
-                                        }}
-                                        style={{ fontSize: '0.85rem', maxWidth: '110px', overflow: 'hidden' }}
-                                      >
-                                        {/* First 2 emoji */}
-                                        {groupReactions(comment.reactions).slice(0, 2).map(({ emoji }) => (
-                                          <span key={emoji} style={{ fontSize: '1.4rem', flexShrink: 0 }}>{emoji}</span>
-                                        ))}
-                                        {/* Count of remaining emoji types if more than 2 */}
-                                        {groupReactions(comment.reactions).length > 2 && (
-                                          <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: '600', flexShrink: 0 }}>
-                                            +{groupReactions(comment.reactions).length - 2}
-                                          </span>
+                                      <div style={{ position: 'relative' }}>
+                                        <button
+                                          className="btn btn-sm btn-light d-flex align-items-center gap-1"
+                                          onClick={() => setShowCommentReactionsModal(showCommentReactionsModal?.commentId === comment.id ? null : { commentId: comment.id })}
+                                          style={{ fontSize: '0.85rem', maxWidth: '110px', overflow: 'hidden' }}
+                                        >
+                                          {groupReactions(comment.reactions).slice(0, 2).map(({ emoji }) => (
+                                            <span key={emoji} style={{ fontSize: '1.4rem', flexShrink: 0 }}>{emoji}</span>
+                                          ))}
+                                          {groupReactions(comment.reactions).length > 2 && (
+                                            <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: '600', flexShrink: 0 }}>
+                                              +{groupReactions(comment.reactions).length - 2}
+                                            </span>
+                                          )}
+                                        </button>
+                                        {showCommentReactionsModal?.commentId === comment.id && (
+                                          <div
+                                            ref={commentReactionsModalRef}
+                                            style={{
+                                              position: 'absolute',
+                                              bottom: 'calc(100% + 4px)',
+                                              left: 0,
+                                              width: '240px',
+                                              backgroundColor: 'white',
+                                              border: '1px solid #e3e6f0',
+                                              borderRadius: '8px',
+                                              boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
+                                              zIndex: 200,
+                                              maxHeight: '220px',
+                                              overflowY: 'auto',
+                                              padding: '4px 0'
+                                            }}
+                                          >
+                                            {(() => {
+                                              const userReactions = {};
+                                              comment.reactions.forEach(r => {
+                                                if (!userReactions[r.username]) userReactions[r.username] = [];
+                                                userReactions[r.username].push(r.emoji);
+                                              });
+                                              return Object.entries(userReactions).map(([username, emojis]) => (
+                                                <div key={username} style={{ display: 'flex', alignItems: 'center', padding: '5px 10px', gap: '8px' }}>
+                                                  <div style={{ width: '26px', height: '26px', borderRadius: '50%', backgroundColor: getUserColor(username), color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', flexShrink: 0 }}>
+                                                    {username.charAt(0).toUpperCase()}
+                                                  </div>
+                                                  <span style={{ flex: 1, fontSize: '0.82rem', color: '#5a5c69', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {username}
+                                                  </span>
+                                                  <span style={{ fontSize: '0.95rem', flexShrink: 0 }}>{emojis.join('')}</span>
+                                                </div>
+                                              ));
+                                            })()}
+                                          </div>
                                         )}
-                                        {/* Total reactions count */}
-                                        <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: '600', flexShrink: 0 }}>
-                                          {comment.reactions.length}
-                                        </span>
+                                      </div>
+                                    )}
+                                    {!editingComment[post.id] && (
+                                      <button
+                                        type="button"
+                                        onClick={() => setInlineReplyingTo(prev => ({
+                                          ...prev,
+                                          [post.id]: prev[post.id] === comment.id ? null : comment.id
+                                        }))}
+                                        style={{
+                                          backgroundColor: 'transparent',
+                                          border: 'none',
+                                          cursor: 'pointer',
+                                          fontSize: '0.8rem',
+                                          color: inlineReplyingTo[post.id] === comment.id ? '#4e73df' : '#858796',
+                                          padding: '2px 4px'
+                                        }}
+                                      >
+                                        <i className="fas fa-reply me-1" style={{ fontSize: '0.75rem' }}></i>
+                                        Odpowiedz
                                       </button>
                                     )}
                                   </div>
                                 </div>
                               </div>
                             </Card.Body>
+                            {inlineReplyingTo[post.id] === comment.id && (
+                              <div style={{ padding: '6px 8px 8px', borderTop: '1px solid #e3e6f0', backgroundColor: '#f8f9fc' }}>
+                                <Form.Control
+                                  as="textarea"
+                                  rows={2}
+                                  autoFocus
+                                  value={inlineReplyText[post.id] || ''}
+                                  onChange={(e) => setInlineReplyText(prev => ({ ...prev, [post.id]: e.target.value }))}
+                                  placeholder="Napisz odpowiedź..."
+                                  style={{ fontSize: '0.85rem', resize: 'none' }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                      e.preventDefault();
+                                      handleInlineReply(post.id, comment.id);
+                                    }
+                                    if (e.key === 'Escape') {
+                                      setInlineReplyingTo(prev => { const u = { ...prev }; delete u[post.id]; return u; });
+                                    }
+                                  }}
+                                />
+                                <div className="d-flex gap-2 mt-1 justify-content-end">
+                                  <Button size="sm" variant="secondary" onClick={() => setInlineReplyingTo(prev => { const u = { ...prev }; delete u[post.id]; return u; })}>
+                                    Anuluj
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="primary"
+                                    disabled={!inlineReplyText[post.id] || !inlineReplyText[post.id].trim()}
+                                    onClick={() => handleInlineReply(post.id, comment.id)}
+                                  >
+                                    Odpowiedz
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
                           </Card>
-                        ))}
-                        {(!postComments[post.id] || postComments[post.id].length === 0) && (
-                          <p className="text-muted text-center py-3">Brak komentarzy</p>
-                        )}
+                          ); };
+                          const THREAD_COLOR = 'rgba(78, 115, 223, 0.5)';
+                          const renderThread = (comment) => (
+                            <div key={comment.id}>
+                              {renderComment(comment)}
+                              {comment.replies.length > 0 && (
+                                <div style={{ paddingLeft: '28px' }}>
+                                  {comment.replies.map((reply, replyIndex) => {
+                                    const isLastReply = replyIndex === comment.replies.length - 1;
+                                    return (
+                                      <div key={reply.id} style={{ position: 'relative' }}>
+                                        {isLastReply ? (
+                                          <div style={{
+                                            position: 'absolute',
+                                            left: '-28px',
+                                            top: 0,
+                                            width: '14px',
+                                            height: '20px',
+                                            borderLeft: `2px solid ${THREAD_COLOR}`,
+                                            borderBottom: `2px solid ${THREAD_COLOR}`,
+                                            borderBottomLeftRadius: '8px',
+                                            boxSizing: 'border-box',
+                                            pointerEvents: 'none',
+                                          }} />
+                                        ) : (
+                                          <>
+                                            <div style={{
+                                              position: 'absolute',
+                                              left: '-28px',
+                                              top: 0,
+                                              bottom: '-4px',
+                                              width: '2px',
+                                              backgroundColor: THREAD_COLOR,
+                                              pointerEvents: 'none',
+                                            }} />
+                                            <div style={{
+                                              position: 'absolute',
+                                              left: '-28px',
+                                              top: '20px',
+                                              width: '14px',
+                                              height: '2px',
+                                              backgroundColor: THREAD_COLOR,
+                                              pointerEvents: 'none',
+                                            }} />
+                                          </>
+                                        )}
+                                        {renderThread(reply)}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          );
+                          return commentTree.map(root => (
+                            <div key={root.id} className="comment-thread">
+                              {renderThread(root)}
+                            </div>
+                          ));
+                        })()}
                       </div>
                     </div>
                   )}
@@ -1219,7 +1363,8 @@ function Posts() {
               </div>
             )}
           </Card>
-        ))}
+          );
+        })}
 
         {/* Loading more indicator */}
         <div ref={observerTarget} className="text-center py-4">
@@ -1474,307 +1619,6 @@ function Posts() {
         />
       )}
 
-{/* Post Reactions Modal/Popover */}
-      {showReactionsModal && (
-        <div
-          ref={reactionsModalRef}
-          style={isLargeScreen ? {
-            // Popover style for large screens
-            position: 'absolute',
-            top: `${reactionsPopoverPosition.top}px`,
-            left: `${reactionsPopoverPosition.left}px`,
-            width: '300px',
-            maxHeight: '400px',
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.1)',
-            zIndex: 1050,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          } : {
-            // Modal style for small screens
-            position: 'fixed',
-            bottom: 0,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '90%',
-            maxWidth: '500px',
-            backgroundColor: 'white',
-            borderRadius: '16px 16px 0 0',
-            boxShadow: '0 -4px 20px rgba(0,0,0,0.2)',
-            zIndex: 1050,
-            maxHeight: '60vh',
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-        >
-          {/* Arrow for popover on large screens */}
-          {isLargeScreen && reactionsPopoverPosition.showAbove !== undefined && (
-            <div
-              style={{
-                position: 'absolute',
-                width: 0,
-                height: 0,
-                borderLeft: '10px solid transparent',
-                borderRight: '10px solid transparent',
-                [reactionsPopoverPosition.showAbove ? 'bottom' : 'top']: '-10px',
-                left: `${reactionsPopoverPosition.buttonLeft - reactionsPopoverPosition.left - 10}px`,
-                ...(reactionsPopoverPosition.showAbove ? {
-                  borderTop: '10px solid white',
-                  filter: 'drop-shadow(0 2px 1px rgba(0,0,0,0.1))'
-                } : {
-                  borderBottom: '10px solid white',
-                  filter: 'drop-shadow(0 -2px 1px rgba(0,0,0,0.1))'
-                })
-              }}
-            />
-          )}
-
-          {/* Header */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: isLargeScreen ? '12px 16px' : '16px 20px',
-              borderBottom: '1px solid #e3e6f0'
-            }}
-          >
-            <h6 style={{ margin: 0, fontSize: isLargeScreen ? '0.95rem' : 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
-              Reakcje ({showReactionsModal.reactions?.length || 0})
-            </h6>
-            <button
-              onClick={() => setShowReactionsModal(null)}
-              style={{
-                backgroundColor: 'transparent',
-                border: 'none',
-                fontSize: '1.3rem',
-                cursor: 'pointer',
-                color: '#858796',
-                padding: '0',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Users list */}
-          <div style={{ overflowY: 'auto', padding: isLargeScreen ? '8px 16px' : '12px 20px' }}>
-            {(() => {
-              // Group reactions by username
-              const userReactions = {};
-              (showReactionsModal.reactions || []).forEach(reaction => {
-                if (!userReactions[reaction.username]) {
-                  userReactions[reaction.username] = [];
-                }
-                userReactions[reaction.username].push(reaction.emoji);
-              });
-
-              // Show users with all their emojis in one line
-              return Object.entries(userReactions).map(([username, emojis], index) => (
-                <div
-                  key={username}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: isLargeScreen ? '8px 0' : '12px 0',
-                    borderBottom: index < Object.keys(userReactions).length - 1 ? '1px solid #f0f0f0' : 'none'
-                  }}
-                >
-                  {/* Avatar placeholder */}
-                  <div
-                    style={{
-                      width: isLargeScreen ? '32px' : '40px',
-                      height: isLargeScreen ? '32px' : '40px',
-                      borderRadius: '50%',
-                      backgroundColor: '#0891b2',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: isLargeScreen ? '0.85rem' : '1rem',
-                      fontWeight: 'bold',
-                      marginRight: '12px',
-                      flexShrink: 0
-                    }}
-                  >
-                    {username.charAt(0).toUpperCase()}
-                  </div>
-
-                  {/* Username */}
-                  <div style={{ flex: 1, fontSize: isLargeScreen ? '0.9rem' : 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
-                    {username}
-                  </div>
-
-                  {/* All emojis for this user */}
-                  <div style={{ display: 'flex', gap: '4px', fontSize: isLargeScreen ? '1.3rem' : '1.5rem', marginLeft: '8px' }}>
-                    {emojis.map((emoji, emojiIndex) => (
-                      <span key={emojiIndex}>{emoji}</span>
-                    ))}
-                  </div>
-                </div>
-              ));
-            })()}
-          </div>
-        </div>
-      )}
-
-      {/* Comment Reactions Modal/Popover */}
-      {showCommentReactionsModal && (
-        <div
-          ref={commentReactionsModalRef}
-          style={isLargeScreen ? {
-            // Popover style for large screens
-            position: 'absolute',
-            top: `${commentReactionsPopoverPosition.top}px`,
-            left: `${commentReactionsPopoverPosition.left}px`,
-            width: '300px',
-            maxHeight: '400px',
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.15), 0 0 1px rgba(0,0,0,0.1)',
-            zIndex: 1050,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden'
-          } : {
-            // Modal style for small screens
-            position: 'fixed',
-            bottom: 0,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '90%',
-            maxWidth: '500px',
-            backgroundColor: 'white',
-            borderRadius: '16px 16px 0 0',
-            boxShadow: '0 -4px 20px rgba(0,0,0,0.2)',
-            zIndex: 1050,
-            maxHeight: '60vh',
-            display: 'flex',
-            flexDirection: 'column'
-          }}
-        >
-          {/* Arrow for popover on large screens */}
-          {isLargeScreen && commentReactionsPopoverPosition.showAbove !== undefined && (
-            <div
-              style={{
-                position: 'absolute',
-                width: 0,
-                height: 0,
-                borderLeft: '10px solid transparent',
-                borderRight: '10px solid transparent',
-                [commentReactionsPopoverPosition.showAbove ? 'bottom' : 'top']: '-10px',
-                left: `${commentReactionsPopoverPosition.buttonLeft - commentReactionsPopoverPosition.left - 10}px`,
-                ...(commentReactionsPopoverPosition.showAbove ? {
-                  borderTop: '10px solid white',
-                  filter: 'drop-shadow(0 2px 1px rgba(0,0,0,0.1))'
-                } : {
-                  borderBottom: '10px solid white',
-                  filter: 'drop-shadow(0 -2px 1px rgba(0,0,0,0.1))'
-                })
-              }}
-            />
-          )}
-
-          {/* Header */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              padding: isLargeScreen ? '12px 16px' : '16px 20px',
-              borderBottom: '1px solid #e3e6f0'
-            }}
-          >
-            <h6 style={{ margin: 0, fontSize: isLargeScreen ? '0.95rem' : 'clamp(0.95rem, 2.2vw, 1.1rem)', fontWeight: 'bold', color: '#5a5c69' }}>
-              Reakcje ({showCommentReactionsModal.reactions?.length || 0})
-            </h6>
-            <button
-              onClick={() => setShowCommentReactionsModal(null)}
-              style={{
-                backgroundColor: 'transparent',
-                border: 'none',
-                fontSize: '1.3rem',
-                cursor: 'pointer',
-                color: '#858796',
-                padding: '0',
-                width: '24px',
-                height: '24px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              ✕
-            </button>
-          </div>
-
-          {/* Users list */}
-          <div style={{ overflowY: 'auto', padding: isLargeScreen ? '8px 16px' : '12px 20px' }}>
-            {(() => {
-              // Group reactions by username
-              const userReactions = {};
-              (showCommentReactionsModal.reactions || []).forEach(reaction => {
-                if (!userReactions[reaction.username]) {
-                  userReactions[reaction.username] = [];
-                }
-                userReactions[reaction.username].push(reaction.emoji);
-              });
-
-              // Show users with all their emojis in one line
-              return Object.entries(userReactions).map(([username, emojis], index) => (
-                <div
-                  key={username}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    padding: isLargeScreen ? '8px 0' : '12px 0',
-                    borderBottom: index < Object.keys(userReactions).length - 1 ? '1px solid #f0f0f0' : 'none'
-                  }}
-                >
-                  {/* Avatar placeholder */}
-                  <div
-                    style={{
-                      width: isLargeScreen ? '32px' : '40px',
-                      height: isLargeScreen ? '32px' : '40px',
-                      borderRadius: '50%',
-                      backgroundColor: '#0891b2',
-                      color: 'white',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: isLargeScreen ? '0.85rem' : '1rem',
-                      fontWeight: 'bold',
-                      marginRight: '12px',
-                      flexShrink: 0
-                    }}
-                  >
-                    {username.charAt(0).toUpperCase()}
-                  </div>
-
-                  {/* Username */}
-                  <div style={{ flex: 1, fontSize: isLargeScreen ? '0.9rem' : 'clamp(0.9rem, 2vw, 1rem)', color: '#5a5c69', fontWeight: '500' }}>
-                    {username}
-                  </div>
-
-                  {/* All emojis for this user */}
-                  <div style={{ display: 'flex', gap: '4px', fontSize: isLargeScreen ? '1.3rem' : '1.5rem', marginLeft: '8px' }}>
-                    {emojis.map((emoji, emojiIndex) => (
-                      <span key={emojiIndex}>{emoji}</span>
-                    ))}
-                  </div>
-                </div>
-              ));
-            })()}
-          </div>
-        </div>
-      )}
     </Container>
   );
 }

@@ -27,10 +27,23 @@ function EditGameModal({ show, onHide, game, onSuccess }) {
     }
   }, [show]);
 
+  const parseDateToInputValue = (gameDate) => {
+    if (!gameDate) return '';
+    let date;
+    if (Array.isArray(gameDate)) {
+      const [year, month, day, hour, minute] = gameDate;
+      date = new Date(year, month - 1, day, hour, minute);
+    } else {
+      date = new Date(gameDate);
+    }
+    if (isNaN(date.getTime())) return '';
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  };
+
   useEffect(() => {
     if (show && game) {
-      // Format date for datetime-local input
-      const gameDate = game.gameDate ? new Date(game.gameDate).toISOString().slice(0, 16) : '';
+      const gameDate = parseDateToInputValue(game.gameDate);
 
       setFormData({
         homeCountryId: game.homeCountryId || '',
@@ -130,7 +143,7 @@ function EditGameModal({ show, onHide, game, onSuccess }) {
         awayCountryId: formData.awayCountryId,
         homeTeam: selectedHomeCountry?.name || game.homeTeam,
         awayTeam: selectedAwayCountry?.name || game.awayTeam,
-        gameDate: new Date(formData.gameDate).toISOString(),
+        gameDate: formData.gameDate + ':00',
         gameStatus: formData.gameStatus,
         homeScore: formData.homeScore !== '' ? parseInt(formData.homeScore) : null,
         awayScore: formData.awayScore !== '' ? parseInt(formData.awayScore) : null

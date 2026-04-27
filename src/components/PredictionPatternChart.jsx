@@ -161,17 +161,17 @@ function PredictionPatternChart() {
     labels: ['Remisy', 'Zwycięstwa'],
     datasets: [
       {
-        label: 'Twoje typy',
-        data: [stats.myDraws, stats.myWins],
-        backgroundColor: 'rgba(78, 115, 223, 0.8)',
-        borderColor: 'rgba(78, 115, 223, 1)',
-        borderWidth: 1
-      },
-      {
         label: 'Średnia innych',
         data: [stats.othersDraws, stats.othersWins],
         backgroundColor: 'rgba(54, 162, 235, 0.6)',
         borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1
+      },
+      {
+        label: 'Twoje typy',
+        data: [stats.myDraws, stats.myWins],
+        backgroundColor: 'rgba(78, 115, 223, 0.8)',
+        borderColor: 'rgba(78, 115, 223, 1)',
         borderWidth: 1
       },
       {
@@ -231,7 +231,7 @@ function PredictionPatternChart() {
   return (
     <div>
       {/* Wykres */}
-      <Card className="shadow mb-4">
+      <Card className="border-start border-primary border-4 shadow mb-4">
         <Card.Header className="py-3">
           <h6 className="m-0 fw-bold text-primary text-uppercase">
             📊 Twój profil typowania vs Rzeczywistość
@@ -242,38 +242,11 @@ function PredictionPatternChart() {
             <Bar data={data} options={options} />
           </div>
 
-          {/* Statystyki procentowe */}
-          <div className="row text-center mb-3">
-            <div className="col-6">
-              <div className="p-3 border rounded">
-                <div className="text-muted small mb-1">⚖️ Remisy</div>
-                <div className="fw-bold fs-4" style={{ color: 'rgba(78, 115, 223, 1)' }}>
-                  {myDrawPercent}%
-                </div>
-                <div className="small text-muted">vs {actualDrawPercent}% rzeczywistość</div>
-                <div className="small mt-1" style={{ color: 'rgba(54, 162, 235, 1)' }}>
-                  Inni: {othersDrawPercent}%
-                </div>
-              </div>
-            </div>
-            <div className="col-6">
-              <div className="p-3 border rounded">
-                <div className="text-muted small mb-1">🏆 Zwycięstwa</div>
-                <div className="fw-bold fs-4" style={{ color: 'rgba(78, 115, 223, 1)' }}>
-                  {myWinPercent}%
-                </div>
-                <div className="small text-muted">vs {actualWinPercent}% rzeczywistość</div>
-                <div className="small mt-1" style={{ color: 'rgba(54, 162, 235, 1)' }}>
-                  Inni: {othersWinPercent}%
-                </div>
-              </div>
-            </div>
-          </div>
         </Card.Body>
       </Card>
 
       {/* Sugestie */}
-      <Card className="shadow mb-4">
+      <Card className="border-start border-success border-4 shadow mb-4">
         <Card.Header className="py-3">
           <h6 className="m-0 fw-bold text-success text-uppercase">
             💡 Sugestie jak ulepszyć swoje typy

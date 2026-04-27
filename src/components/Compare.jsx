@@ -165,7 +165,7 @@ function Compare() {
       {/* Comparison Stats Header */}
       <div className="row mb-3">
         {/* Current User Card */}
-        <div className="col-12 col-md-6 mb-3 mb-md-0">
+        <div className="col-6">
           <Card className="border-start border-primary border-4 shadow h-100">
             <Card.Body className="py-3">
               <div className="text-center">
@@ -191,7 +191,7 @@ function Compare() {
         </div>
 
         {/* Compared User Card */}
-        <div className="col-12 col-md-6">
+        <div className="col-6">
           <Card className="border-start border-warning border-4 shadow h-100">
             <Card.Body className="py-3">
               <div className="text-center">
