@@ -77,13 +77,11 @@ function Ranking() {
     return username.charAt(0).toUpperCase() + username.slice(1);
   };
 
-  const getAvatarBackgroundColor = (username, index) => {
-    // Top 3 get special colors
-    if (index === 0) return '#FFD700'; // gold
-    if (index === 1) return '#C0C0C0'; // silver
-    if (index === 2) return '#CD7F32'; // bronze
-    // Everyone else gets consistent color based on username
-    return getUserColor(username);
+  const getAvatarBackgroundColor = (row, index) => {
+    if (index === 0) return '#FFD700';
+    if (index === 1) return '#C0C0C0';
+    if (index === 2) return '#CD7F32';
+    return row.avatarColor || getUserColor(row.username);
   };
 
   return (
@@ -142,13 +140,13 @@ function Ranking() {
                     style={{
                       width: '28px',
                       height: '28px',
-                      backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row.username, index),
+                      backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row, index),
                       color: 'white',
                       fontWeight: 'bold',
                       fontSize: '0.7rem',
                       flexShrink: 0,
                       overflow: 'hidden',
-                      border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row.username, index)}` : '1px solid #e3e6f0',
+                      border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row, index)}` : '1px solid #e3e6f0',
                       marginLeft: '2px',
                       marginRight: '6px'
                     }}

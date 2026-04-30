@@ -398,13 +398,11 @@ function GameResults() {
                   return username.substring(0, 2).toUpperCase();
                 };
 
-                const getAvatarBackgroundColor = (username, idx) => {
-                  // Top 3 get special colors
-                  if (idx === 0) return '#FFD700'; // gold
-                  if (idx === 1) return '#C0C0C0'; // silver
-                  if (idx === 2) return '#CD7F32'; // bronze
-                  // Everyone else gets consistent color based on username
-                  return getUserColor(username);
+                const getAvatarBackgroundColor = (r, idx) => {
+                  if (idx === 0) return '#FFD700';
+                  if (idx === 1) return '#C0C0C0';
+                  if (idx === 2) return '#CD7F32';
+                  return r.avatarColor || getUserColor(r.username);
                 };
 
                 const isCurrentUser = row.username === user?.username;
@@ -450,13 +448,13 @@ function GameResults() {
                       style={{
                         width: '32px',
                         height: '32px',
-                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row.username, index),
+                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row, index),
                         color: 'white',
                         fontWeight: 'bold',
                         fontSize: '0.75rem',
                         flexShrink: 0,
                         overflow: 'hidden',
-                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row.username, index)}` : '1px solid #e3e6f0'
+                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row, index)}` : '1px solid #e3e6f0'
                       }}
                     >
                       {row.avatarUrl ? (
@@ -553,13 +551,11 @@ function GameResults() {
                   return username.substring(0, 2).toUpperCase();
                 };
 
-                const getAvatarBackgroundColor = (username, idx) => {
-                  // Top 3 get special colors
-                  if (idx === 0) return '#FFD700'; // gold
-                  if (idx === 1) return '#C0C0C0'; // silver
-                  if (idx === 2) return '#CD7F32'; // bronze
-                  // Everyone else gets consistent color based on username
-                  return getUserColor(username);
+                const getAvatarBackgroundColor = (r, idx) => {
+                  if (idx === 0) return '#FFD700';
+                  if (idx === 1) return '#C0C0C0';
+                  if (idx === 2) return '#CD7F32';
+                  return r.avatarColor || getUserColor(r.username);
                 };
 
                 const isCurrentUser = row.username === user?.username;
@@ -605,13 +601,13 @@ function GameResults() {
                       style={{
                         width: '32px',
                         height: '32px',
-                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row.username, index),
+                        backgroundColor: row.avatarUrl ? 'transparent' : getAvatarBackgroundColor(row, index),
                         color: 'white',
                         fontWeight: 'bold',
                         fontSize: '0.75rem',
                         flexShrink: 0,
                         overflow: 'hidden',
-                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row.username, index)}` : '1px solid #e3e6f0'
+                        border: index < 3 ? `2px solid ${getAvatarBackgroundColor(row, index)}` : '1px solid #e3e6f0'
                       }}
                     >
                       {row.avatarUrl ? (

@@ -543,7 +543,7 @@ function Chat() {
                             boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
                             wordWrap: 'break-word',
                             position: 'relative',
-                            fontSize: 'clamp(0.85rem, 2vw, 0.95rem)'
+                            fontSize: '0.875rem'
                           }}
                         >
                           {renderMessageText(message.text)}
@@ -664,11 +664,11 @@ function Chat() {
                             right: isMyMessage ? '0' : 'auto',
                             backgroundColor: 'white',
                             border: '1px solid #ddd',
-                            borderRadius: '24px',
-                            padding: '8px 12px',
+                            borderRadius: '20px',
+                            padding: '4px 8px',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                             display: 'flex',
-                            gap: '8px',
+                            gap: '2px',
                             zIndex: 100
                           }}
                           onMouseEnter={() => setShowReactionPicker(message.id)}
@@ -685,9 +685,9 @@ function Chat() {
                               style={{
                                 backgroundColor: 'transparent',
                                 border: 'none',
-                                fontSize: '1.5rem',
+                                fontSize: '1.1rem',
                                 cursor: 'pointer',
-                                padding: '4px',
+                                padding: '2px 3px',
                                 transition: 'transform 0.2s'
                               }}
                               onMouseEnter={(e) => e.target.style.transform = 'scale(1.3)'}
@@ -707,9 +707,9 @@ function Chat() {
                             style={{
                               backgroundColor: 'transparent',
                               border: 'none',
-                              fontSize: '1.2rem',
+                              fontSize: '0.95rem',
                               cursor: 'pointer',
-                              padding: '4px',
+                              padding: '2px 3px',
                               transition: 'transform 0.2s',
                               color: '#858796'
                             }}
@@ -729,9 +729,9 @@ function Chat() {
                             style={{
                               backgroundColor: 'transparent',
                               border: 'none',
-                              fontSize: '1.5rem',
+                              fontSize: '1.1rem',
                               cursor: 'pointer',
-                              padding: '4px',
+                              padding: '2px 3px',
                               transition: 'transform 0.2s',
                               color: '#858796'
                             }}
@@ -841,7 +841,7 @@ function Chat() {
                     minHeight: '36px',
                     maxHeight: '120px',
                     resize: 'none',
-                    fontSize: 'clamp(0.875rem, 2vw, 1rem)',
+                    fontSize: '0.875rem',
                     padding: '0.45rem 3rem 0.45rem 0.75rem',
                     borderRadius: '18px'
                   }}

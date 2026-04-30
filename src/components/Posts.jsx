@@ -28,6 +28,7 @@ function Posts() {
   const [showEmojiPickerForPost, setShowEmojiPickerForPost] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
 
   // Edit post
   const [editingPost, setEditingPost] = useState(null);
@@ -57,6 +58,52 @@ function Posts() {
   const [editCommentText, setEditCommentText] = useState({});  // { postId: text }
   const [inlineReplyingTo, setInlineReplyingTo] = useState({});  // { postId: commentId }
   const [inlineReplyText, setInlineReplyText] = useState({});  // { postId: text }
+
+  const uploadImageFile = async (file, isEditing) => {
+    setUploadError(null);
+    try {
+      setUploadingImage(true);
+      const response = await postApi.uploadImage(file);
+      const imageUrl = response.data.imageUrl;
+      if (isEditing) {
+        setEditPostImageUrl(imageUrl);
+      } else {
+        setNewPostImageUrl(imageUrl);
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.error || err?.response?.status || err?.message || 'Nieznany błąd';
+      setUploadError(`Błąd uploadu: ${msg}`);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const handleFileInput = (e, isEditing = false) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      uploadImageFile(file, isEditing);
+    }
+    e.target.value = '';
+  };
+
+  // Native paste listener — catches Ctrl+V when either post modal is open
+  useEffect(() => {
+    const isEditing = showEditPostModal;
+    const isActive = showNewPostModal || showEditPostModal;
+    if (!isActive) return;
+
+    const onNativePaste = (e) => {
+      const items = Array.from(e.clipboardData?.items || []);
+      const imageItem = items.find(item => item.type.startsWith('image/'));
+      if (!imageItem) return;
+      e.preventDefault();
+      const file = imageItem.getAsFile();
+      if (file) uploadImageFile(file, isEditing);
+    };
+
+    document.addEventListener('paste', onNativePaste);
+    return () => document.removeEventListener('paste', onNativePaste);
+  }, [showNewPostModal, showEditPostModal]);
 
   const reactionPickerRef = useRef(null);
   const moreReactionsPickerRef = useRef(null);
@@ -260,41 +307,6 @@ function Posts() {
     }
   };
 
-  const handlePaste = async (e, isEditing = false) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    for (let i = 0; i < items.length; i++) {
-      const item = items[i];
-
-      // Check if item is an image
-      if (item.type.startsWith('image/')) {
-        e.preventDefault(); // Prevent default paste behavior
-
-        const file = item.getAsFile();
-        if (!file) continue;
-
-        try {
-          setUploadingImage(true);
-          const response = await postApi.uploadImage(file);
-          const imageUrl = response.data.imageUrl;
-
-          if (isEditing) {
-            setEditPostImageUrl(imageUrl);
-          } else {
-            setNewPostImageUrl(imageUrl);
-          }
-        } catch (err) {
-          console.error('Error uploading image:', err);
-          alert('Nie udało się wgrać obrazu');
-        } finally {
-          setUploadingImage(false);
-        }
-
-        break; // Only handle first image
-      }
-    }
-  };
 
   const handleReaction = async (postId, emoji) => {
     try {
@@ -1405,7 +1417,6 @@ function Posts() {
                 rows={6}
                 value={newPostContent}
                 onChange={(e) => setNewPostContent(e.target.value)}
-                onPaste={(e) => handlePaste(e, false)}
                 placeholder="Wpisz treść posta... (możesz wkleić obraz Ctrl+V)"
                 required
               />
@@ -1417,10 +1428,15 @@ function Posts() {
                   Wgrywanie obrazu...
                 </small>
               )}
+              {uploadError && (
+                <div className="alert alert-danger mt-2 py-2 px-3" style={{ fontSize: '0.85rem' }}>
+                  {uploadError}
+                </div>
+              )}
             </Form.Group>
 
             {/* Emoji and GIF Buttons */}
-            <div className="d-flex gap-2 mb-3">
+            <div className="d-flex gap-2 mb-3 flex-wrap">
               <Button
                 variant="outline-secondary"
                 size="sm"
@@ -1437,6 +1453,15 @@ function Posts() {
               >
                 GIF
               </Button>
+              <label className="btn btn-outline-secondary btn-sm mb-0" style={{ cursor: 'pointer' }}>
+                🖼 Obraz
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFileInput(e, false)}
+                />
+              </label>
               {newPostGifUrl && (
                 <Button
                   variant="outline-danger"
@@ -1539,7 +1564,6 @@ function Posts() {
                 rows={6}
                 value={editPostContent}
                 onChange={(e) => setEditPostContent(e.target.value)}
-                onPaste={(e) => handlePaste(e, true)}
                 placeholder="Wpisz treść posta... (możesz wkleić obraz Ctrl+V)"
                 required
               />
@@ -1563,6 +1587,29 @@ function Posts() {
               />
             </Form.Group>
 
+            {/* Image button for edit */}
+            <div className="d-flex gap-2 mb-3">
+              <label className="btn btn-outline-secondary btn-sm mb-0" style={{ cursor: 'pointer' }}>
+                🖼 Obraz
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: 'none' }}
+                  onChange={(e) => handleFileInput(e, true)}
+                />
+              </label>
+              {editPostImageUrl && (
+                <Button
+                  variant="outline-danger"
+                  size="sm"
+                  onClick={() => setEditPostImageUrl('')}
+                  type="button"
+                >
+                  Usuń obraz
+                </Button>
+              )}
+            </div>
+
             {/* Image Preview for Edit */}
             {editPostImageUrl && (
               <div className="mb-3">
@@ -1574,16 +1621,6 @@ function Posts() {
                     className="img-fluid rounded"
                     style={{ maxHeight: '300px' }}
                   />
-                  <div className="mt-2">
-                    <Button
-                      variant="outline-danger"
-                      size="sm"
-                      onClick={() => setEditPostImageUrl('')}
-                      type="button"
-                    >
-                      Usuń obraz
-                    </Button>
-                  </div>
                 </div>
               </div>
             )}
