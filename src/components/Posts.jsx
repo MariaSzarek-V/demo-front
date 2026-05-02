@@ -38,6 +38,10 @@ function Posts() {
   const [editPostGifUrl, setEditPostGifUrl] = useState('');
   const [editPostImageUrl, setEditPostImageUrl] = useState('');
 
+  // Post context menu (three-dot)
+  const [openPostMenu, setOpenPostMenu] = useState(null); // postId
+  const postMenuRef = useRef(null);
+
   // Reactions - posts
   const [showReactionPicker, setShowReactionPicker] = useState(null);
   const [showMoreReactionsPicker, setShowMoreReactionsPicker] = useState(null);
@@ -86,24 +90,14 @@ function Posts() {
     e.target.value = '';
   };
 
-  // Native paste listener — catches Ctrl+V when either post modal is open
-  useEffect(() => {
-    const isEditing = showEditPostModal;
-    const isActive = showNewPostModal || showEditPostModal;
-    if (!isActive) return;
-
-    const onNativePaste = (e) => {
-      const items = Array.from(e.clipboardData?.items || []);
-      const imageItem = items.find(item => item.type.startsWith('image/'));
-      if (!imageItem) return;
-      e.preventDefault();
-      const file = imageItem.getAsFile();
-      if (file) uploadImageFile(file, isEditing);
-    };
-
-    document.addEventListener('paste', onNativePaste);
-    return () => document.removeEventListener('paste', onNativePaste);
-  }, [showNewPostModal, showEditPostModal]);
+  const handlePaste = (e, isEditing) => {
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItem = items.find(item => item.type.startsWith('image/'));
+    if (!imageItem) return;
+    e.preventDefault();
+    const file = imageItem.getAsFile();
+    if (file) uploadImageFile(file, isEditing);
+  };
 
   const reactionPickerRef = useRef(null);
   const moreReactionsPickerRef = useRef(null);
@@ -164,11 +158,14 @@ function Posts() {
       if (commentReactionsModalRef.current && !commentReactionsModalRef.current.contains(event.target)) {
         setShowCommentReactionsModal(null);
       }
+      if (postMenuRef.current && !postMenuRef.current.contains(event.target)) {
+        setOpenPostMenu(null);
+      }
     };
 
     if (showReactionPicker !== null || showMoreReactionsPicker !== null || showReactionsModal !== null ||
         showCommentReactionPicker !== null || showCommentMoreReactionsPicker !== null ||
-        showCommentReactionsModal !== null) {
+        showCommentReactionsModal !== null || openPostMenu !== null) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
@@ -176,7 +173,17 @@ function Posts() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showReactionPicker, showMoreReactionsPicker, showReactionsModal, showCommentReactionPicker,
-      showCommentMoreReactionsPicker, showCommentReactionsModal]);
+      showCommentMoreReactionsPicker, showCommentReactionsModal, openPostMenu]);
+
+  const fitImage = (e) => {
+    const img = e.target;
+    const { naturalWidth: w, naturalHeight: h } = img;
+    if (!w || !h) return;
+    const maxW = 500, maxH = 400;
+    const scale = Math.min(1, maxW / w, maxH / h);
+    img.style.width = Math.round(w * scale) + 'px';
+    img.style.height = 'auto';
+  };
 
   const loadPosts = async () => {
     try {
@@ -587,14 +594,7 @@ function Posts() {
       <div className="posts-list">
         {posts.map(post => {
           if (post.deleted) {
-            return (
-              <Card key={post.id} className="border-start border-secondary border-4 mb-2 shadow" style={{ opacity: 0.65 }}>
-                <Card.Body style={{ padding: '0.5rem 0.75rem', color: '#adb5bd', fontStyle: 'italic', fontSize: '0.875rem' }}>
-                  <i className="fas fa-ban me-2" style={{ fontSize: '0.8rem' }}></i>
-                  Post użytkownika <strong style={{ color: '#9ca3af' }}>{post.deletedBy}</strong> został usunięty
-                </Card.Body>
-              </Card>
-            );
+            return null;
           }
           return (
           <Card key={post.id} className="border-start border-info border-4 mb-2 shadow" style={{ backgroundColor: '#f8f9fc' }}>
@@ -630,35 +630,61 @@ function Posts() {
                   </small>
                 </div>
                 {user?.username === post.username && (
-                  <div className="d-flex gap-2">
+                  <div style={{ position: 'relative' }} ref={openPostMenu === post.id ? postMenuRef : null}>
                     <button
-                      onClick={() => handleEditPost(post)}
+                      onClick={() => setOpenPostMenu(openPostMenu === post.id ? null : post.id)}
                       style={{
                         backgroundColor: 'transparent',
                         border: 'none',
                         cursor: 'pointer',
-                        padding: '4px',
-                        fontSize: '1rem',
-                        color: '#4e73df'
+                        padding: '4px 8px',
+                        fontSize: '1.1rem',
+                        color: '#718096',
+                        lineHeight: 1,
+                        borderRadius: '4px',
                       }}
-                      title="Edytuj post"
+                      title="Opcje"
                     >
-                      <i className="fas fa-edit"></i>
+                      ···
                     </button>
-                    <button
-                      onClick={() => handleDeletePost(post.id)}
-                      style={{
-                        backgroundColor: 'transparent',
-                        border: 'none',
-                        cursor: 'pointer',
-                        padding: '4px',
-                        fontSize: '1rem',
-                        color: '#e74a3b'
-                      }}
-                      title="Usuń post"
-                    >
-                      <i className="fas fa-trash"></i>
-                    </button>
+                    {openPostMenu === post.id && (
+                      <div style={{
+                        position: 'absolute', right: 0, top: '100%', zIndex: 100,
+                        background: '#fff', border: '1px solid #e2e8f0',
+                        borderRadius: '8px', boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                        minWidth: '140px', overflow: 'hidden',
+                      }}>
+                        <button
+                          onClick={() => { handleEditPost(post); setOpenPostMenu(null); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            width: '100%', padding: '10px 14px', border: 'none',
+                            background: 'transparent', cursor: 'pointer', fontSize: '0.875rem',
+                            color: '#2d3748', textAlign: 'left',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#f7fafc'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <i className="fas fa-edit" style={{ color: '#4e73df', width: '14px' }}></i>
+                          Edytuj
+                        </button>
+                        <div style={{ height: '1px', background: '#e2e8f0', margin: '0 10px' }} />
+                        <button
+                          onClick={() => { handleDeletePost(post.id); setOpenPostMenu(null); }}
+                          style={{
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            width: '100%', padding: '10px 14px', border: 'none',
+                            background: 'transparent', cursor: 'pointer', fontSize: '0.875rem',
+                            color: '#e74a3b', textAlign: 'left',
+                          }}
+                          onMouseEnter={e => e.currentTarget.style.background = '#fff5f5'}
+                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                        >
+                          <i className="fas fa-trash" style={{ color: '#e74a3b', width: '14px' }}></i>
+                          Usuń
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -670,8 +696,9 @@ function Posts() {
                 <img
                   src={post.imageUrl}
                   alt="Post image"
-                  className="img-fluid rounded mb-2"
-                  style={{ maxHeight: '400px' }}
+                  className="rounded mb-2 d-block"
+                  onLoad={fitImage}
+                  style={{ maxWidth: '100%' }}
                 />
               )}
 
@@ -679,8 +706,9 @@ function Posts() {
                 <img
                   src={post.gifUrl}
                   alt="GIF"
-                  className="img-fluid rounded mb-2"
-                  style={{ maxHeight: '400px' }}
+                  className="rounded mb-2 d-block"
+                  onLoad={fitImage}
+                  style={{ maxWidth: '100%' }}
                 />
               )}
 
@@ -1412,27 +1440,75 @@ function Posts() {
 
             <Form.Group className="mb-3">
               <Form.Label>Treść *</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={6}
-                value={newPostContent}
-                onChange={(e) => setNewPostContent(e.target.value)}
-                placeholder="Wpisz treść posta... (możesz wkleić obraz Ctrl+V)"
-                required
-              />
-              {uploadingImage && (
-                <small className="text-muted d-block mt-1">
-                  <div className="spinner-border spinner-border-sm me-2" role="status">
-                    <span className="visually-hidden">Uploading...</span>
+              <div className="border rounded" style={{ overflow: 'hidden' }}>
+                <Form.Control
+                  as="textarea"
+                  rows={5}
+                  value={newPostContent}
+                  onChange={(e) => setNewPostContent(e.target.value)}
+                  onPaste={(e) => handlePaste(e, false)}
+                  placeholder="Wpisz treść posta... (możesz wkleić obraz Ctrl+V)"
+                  required
+                  style={{ border: 'none', borderRadius: 0, boxShadow: 'none', resize: 'none' }}
+                />
+                {(newPostImageUrl || newPostGifUrl) && (
+                  <div style={{ borderTop: '1px solid #dee2e6', padding: '8px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {newPostImageUrl && (
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <img
+                          src={newPostImageUrl}
+                          alt="Uploaded image"
+                          style={{ maxHeight: '150px', maxWidth: '250px', width: 'auto', height: 'auto', borderRadius: '4px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewPostImageUrl('')}
+                          style={{
+                            position: 'absolute', top: '-6px', right: '-6px',
+                            background: '#dc3545', color: 'white', border: 'none',
+                            borderRadius: '50%', width: '20px', height: '20px',
+                            fontSize: '11px', cursor: 'pointer', lineHeight: '18px',
+                            textAlign: 'center', padding: 0
+                          }}
+                        >✕</button>
+                      </div>
+                    )}
+                    {newPostGifUrl && (
+                      <div style={{ position: 'relative', display: 'inline-block' }}>
+                        <img
+                          src={newPostGifUrl}
+                          alt="Selected GIF"
+                          style={{ maxHeight: '150px', maxWidth: '250px', width: 'auto', height: 'auto', borderRadius: '4px' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setNewPostGifUrl('')}
+                          style={{
+                            position: 'absolute', top: '-6px', right: '-6px',
+                            background: '#dc3545', color: 'white', border: 'none',
+                            borderRadius: '50%', width: '20px', height: '20px',
+                            fontSize: '11px', cursor: 'pointer', lineHeight: '18px',
+                            textAlign: 'center', padding: 0
+                          }}
+                        >✕</button>
+                      </div>
+                    )}
                   </div>
-                  Wgrywanie obrazu...
-                </small>
-              )}
-              {uploadError && (
-                <div className="alert alert-danger mt-2 py-2 px-3" style={{ fontSize: '0.85rem' }}>
-                  {uploadError}
-                </div>
-              )}
+                )}
+                {uploadingImage && (
+                  <div style={{ padding: '4px 8px', borderTop: '1px solid #dee2e6' }}>
+                    <div className="spinner-border spinner-border-sm me-2" role="status">
+                      <span className="visually-hidden">Uploading...</span>
+                    </div>
+                    <small className="text-muted">Wgrywanie obrazu...</small>
+                  </div>
+                )}
+                {uploadError && (
+                  <div className="alert alert-danger m-2 py-2 px-3" style={{ fontSize: '0.85rem' }}>
+                    {uploadError}
+                  </div>
+                )}
+              </div>
             </Form.Group>
 
             {/* Emoji and GIF Buttons */}
@@ -1462,26 +1538,6 @@ function Posts() {
                   onChange={(e) => handleFileInput(e, false)}
                 />
               </label>
-              {newPostGifUrl && (
-                <Button
-                  variant="outline-danger"
-                  size="sm"
-                  onClick={() => setNewPostGifUrl('')}
-                  type="button"
-                >
-                  Usuń GIF
-                </Button>
-              )}
-              {newPostImageUrl && (
-                <Button
-                  variant="outline-danger"
-                  size="sm"
-                  onClick={() => setNewPostImageUrl('')}
-                  type="button"
-                >
-                  Usuń obraz
-                </Button>
-              )}
             </div>
 
             {/* Emoji Picker for Post Content */}
@@ -1494,30 +1550,6 @@ function Posts() {
                   }}
                   width="100%"
                   height="350px"
-                />
-              </div>
-            )}
-
-            {/* GIF Preview */}
-            {newPostGifUrl && (
-              <div className="mb-3">
-                <img
-                  src={newPostGifUrl}
-                  alt="Selected GIF"
-                  className="img-fluid rounded"
-                  style={{ maxHeight: '300px' }}
-                />
-              </div>
-            )}
-
-            {/* Image Preview */}
-            {newPostImageUrl && (
-              <div className="mb-3">
-                <img
-                  src={newPostImageUrl}
-                  alt="Uploaded image"
-                  className="img-fluid rounded"
-                  style={{ maxHeight: '300px' }}
                 />
               </div>
             )}
@@ -1559,22 +1591,48 @@ function Posts() {
 
             <Form.Group className="mb-3">
               <Form.Label>Treść *</Form.Label>
-              <Form.Control
-                as="textarea"
-                rows={6}
-                value={editPostContent}
-                onChange={(e) => setEditPostContent(e.target.value)}
-                placeholder="Wpisz treść posta... (możesz wkleić obraz Ctrl+V)"
-                required
-              />
-              {uploadingImage && (
-                <small className="text-muted d-block mt-1">
-                  <div className="spinner-border spinner-border-sm me-2" role="status">
-                    <span className="visually-hidden">Uploading...</span>
+              <div className="border rounded" style={{ overflow: 'hidden' }}>
+                <Form.Control
+                  as="textarea"
+                  rows={5}
+                  value={editPostContent}
+                  onChange={(e) => setEditPostContent(e.target.value)}
+                  onPaste={(e) => handlePaste(e, true)}
+                  placeholder="Wpisz treść posta... (możesz wkleić obraz Ctrl+V)"
+                  required
+                  style={{ border: 'none', borderRadius: 0, boxShadow: 'none', resize: 'none' }}
+                />
+                {editPostImageUrl && (
+                  <div style={{ borderTop: '1px solid #dee2e6', padding: '8px' }}>
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <img
+                        src={editPostImageUrl}
+                        alt="Uploaded image"
+                        style={{ maxHeight: '150px', maxWidth: '250px', width: 'auto', height: 'auto', borderRadius: '4px' }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setEditPostImageUrl('')}
+                        style={{
+                          position: 'absolute', top: '-6px', right: '-6px',
+                          background: '#dc3545', color: 'white', border: 'none',
+                          borderRadius: '50%', width: '20px', height: '20px',
+                          fontSize: '11px', cursor: 'pointer', lineHeight: '18px',
+                          textAlign: 'center', padding: 0
+                        }}
+                      >✕</button>
+                    </div>
                   </div>
-                  Wgrywanie obrazu...
-                </small>
-              )}
+                )}
+                {uploadingImage && (
+                  <div style={{ padding: '4px 8px', borderTop: '1px solid #dee2e6' }}>
+                    <div className="spinner-border spinner-border-sm me-2" role="status">
+                      <span className="visually-hidden">Uploading...</span>
+                    </div>
+                    <small className="text-muted">Wgrywanie obrazu...</small>
+                  </div>
+                )}
+              </div>
             </Form.Group>
 
             <Form.Group className="mb-3">
@@ -1598,32 +1656,7 @@ function Posts() {
                   onChange={(e) => handleFileInput(e, true)}
                 />
               </label>
-              {editPostImageUrl && (
-                <Button
-                  variant="outline-danger"
-                  size="sm"
-                  onClick={() => setEditPostImageUrl('')}
-                  type="button"
-                >
-                  Usuń obraz
-                </Button>
-              )}
             </div>
-
-            {/* Image Preview for Edit */}
-            {editPostImageUrl && (
-              <div className="mb-3">
-                <Form.Label>Wgrany obraz</Form.Label>
-                <div>
-                  <img
-                    src={editPostImageUrl}
-                    alt="Uploaded image"
-                    className="img-fluid rounded"
-                    style={{ maxHeight: '300px' }}
-                  />
-                </div>
-              </div>
-            )}
 
             <div className="d-flex justify-content-end gap-2">
               <Button variant="secondary" onClick={() => setShowEditPostModal(false)}>
@@ -1642,19 +1675,18 @@ function Posts() {
       </Modal>
 
       {/* GIF Picker Modal */}
-      {showGifPicker && (
-        <GifPicker
-          onSelectGif={(gifUrl) => {
-            if (editingPost) {
-              setEditPostGifUrl(gifUrl);
-            } else {
-              setNewPostGifUrl(gifUrl);
-            }
-            setShowGifPicker(false);
-          }}
-          onClose={() => setShowGifPicker(false)}
-        />
-      )}
+      <GifPicker
+        show={showGifPicker}
+        onHide={() => setShowGifPicker(false)}
+        onSelectGif={(gifUrl) => {
+          if (editingPost) {
+            setEditPostGifUrl(gifUrl);
+          } else {
+            setNewPostGifUrl(gifUrl);
+          }
+          setShowGifPicker(false);
+        }}
+      />
 
     </Container>
   );

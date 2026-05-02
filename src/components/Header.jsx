@@ -18,7 +18,6 @@ function Header() {
     if (selectedLeague) {
       loadUnreadPostsCount();
 
-      // Refresh count every minute
       const interval = setInterval(() => {
         loadUnreadPostsCount();
       }, 60000);
@@ -27,7 +26,14 @@ function Header() {
     }
   }, [selectedLeague]);
 
+  useEffect(() => {
+    if (location.pathname === '/posts') {
+      setUnreadPostsCount(0);
+    }
+  }, [location.pathname]);
+
   const loadUnreadPostsCount = async () => {
+    if (location.pathname === '/posts') return;
     try {
       const response = await notificationApi.getUnreadPostsCount(selectedLeague?.id);
       setUnreadPostsCount(response.data || 0);
@@ -115,7 +121,7 @@ function Header() {
               as={Link}
               to="/posts"
               className={`text-white text-nowrap ${location.pathname === '/posts' ? 'active' : ''}`}
-              style={{ padding: '0.25rem 0.75rem', position: 'relative' }}
+              style={{ padding: '0.25rem 0.75rem' }}
             >
               Posty
               {unreadPostsCount > 0 && (
@@ -123,16 +129,10 @@ function Header() {
                   bg="danger"
                   pill
                   style={{
-                    position: 'absolute',
-                    top: '-5px',
-                    right: '-5px',
                     fontSize: '0.65rem',
-                    minWidth: '18px',
-                    height: '18px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    padding: '0 5px'
+                    marginLeft: '5px',
+                    verticalAlign: 'middle',
+                    padding: '3px 6px'
                   }}
                 >
                   {unreadPostsCount > 99 ? '99+' : unreadPostsCount}

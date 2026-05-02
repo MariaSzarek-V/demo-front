@@ -115,11 +115,20 @@ function PredictionPatternChart() {
           label: function (context) {
             const label = context.dataset.label || '';
             const value = context.parsed.y ?? 0;
-            let extra = '';
-            if (label === 'Twoje typy') extra = ` (${stats.myTotal} typów)`;
-            else if (label === 'Wyniki meczów') extra = ` (${stats.actualTotal} meczów)`;
-            else if (label === 'Średnia innych') extra = ` (${stats.othersPlayerCount} graczy)`;
-            return `${label}: ${value}%${extra}`;
+            const pct = value.toFixed(1);
+            if (label === 'Twoje typy') {
+              const count = Math.round(value / 100 * (stats.myTotal ?? 0));
+              return `Twoje typy: ${pct}%, ${count} z ${stats.myTotal ?? 0} typów`;
+            }
+            if (label === 'Wyniki meczów') {
+              const count = Math.round(value / 100 * (stats.actualTotal ?? 0));
+              return `Wyniki meczów: ${pct}%, ${count} z ${stats.actualTotal ?? 0} meczów`;
+            }
+            if (label === 'Średnia innych') {
+              const count = Math.round(value / 100 * (stats.actualTotal ?? 0));
+              return `Średnia innych graczy: ${pct}%, ok. ${count} meczów`;
+            }
+            return `${label}: ${pct}%`;
           }
         }
       }

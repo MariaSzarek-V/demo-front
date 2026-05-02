@@ -188,40 +188,57 @@ function PredictionHistory() {
 
         return (
           <Card className="mb-4 shadow border-start border-primary border-4" style={{ borderRadius: '0.375rem', overflow: 'hidden' }}>
-            <Card.Body>
-              <div className="row">
-                <div className="col-6">
-                  <h6 className="text-muted mb-3">
-                    <i className="fas fa-crosshairs me-2 text-primary"></i>
-                    Najczęściej typowane wyniki
-                  </h6>
-                  <ol className="list-unstyled mb-0">
-                    {topPred.map(([score, count], i) => (
-                      <li key={score} className="d-flex align-items-center mb-2">
-                        <span className="text-muted me-2" style={{ minWidth: '18px', fontSize: '0.8rem' }}>{i + 1}.</span>
-                        <span className="fw-bold text-primary me-2" style={{ minWidth: '48px' }}>{score}</span>
-                        <span className="badge bg-secondary">{count}×</span>
-                      </li>
-                    ))}
-                  </ol>
+            <Card.Header className="py-3">
+              <h6 className="m-0 fw-bold text-primary text-uppercase">🎯 Twój styl gry</h6>
+            </Card.Header>
+            <Card.Body className="p-0">
+              {/* Header */}
+              <div className="d-flex align-items-center px-3 py-2" style={{ borderBottom: '2px solid #e3e6f0', backgroundColor: '#f8f9fc' }}>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <i className="fas fa-crosshairs text-primary" style={{ fontSize: '0.75rem' }}></i>
+                  <span className="fw-bold text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '0.05em', color: '#4e73df' }}>Najczęściej typowane</span>
                 </div>
-                <div className="col-6 border-start">
-                  <h6 className="text-muted mb-3">
-                    <i className="fas fa-futbol me-2 text-success"></i>
-                    Najczęściej padające wyniki
-                  </h6>
-                  <ol className="list-unstyled mb-0">
-                    {topActual.length > 0 ? topActual.map(([score, count], i) => (
-                      <li key={score} className="d-flex align-items-center mb-2">
-                        <span className="text-muted me-2" style={{ minWidth: '18px', fontSize: '0.8rem' }}>{i + 1}.</span>
-                        <span className="fw-bold text-success me-2" style={{ minWidth: '48px' }}>{score}</span>
-                        <span className="badge bg-secondary">{count}×</span>
-                      </li>
-                    )) : (
-                      <li className="text-muted small">Brak zakończonych meczów</li>
-                    )}
-                  </ol>
+                <div style={{ width: '1px', backgroundColor: '#e3e6f0', alignSelf: 'stretch', margin: '0 8px' }}></div>
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <i className="fas fa-futbol text-success" style={{ fontSize: '0.75rem' }}></i>
+                  <span className="fw-bold text-uppercase" style={{ fontSize: '0.7rem', letterSpacing: '0.05em', color: '#1cc88a' }}>Najczęściej padające</span>
                 </div>
+              </div>
+              {/* Rows */}
+              <div style={{ fontSize: '0.9rem' }}>
+                {Array.from({ length: Math.max(topPred.length, topActual.length) }).map((_, i) => {
+                  const [predScore, predCount] = topPred[i] || [];
+                  const [actualScore, actualCount] = topActual[i] || [];
+                  return (
+                    <div
+                      key={i}
+                      className="d-flex align-items-center px-3 py-2"
+                      style={{ borderBottom: i < Math.max(topPred.length, topActual.length) - 1 ? '1px solid #e3e6f0' : 'none' }}
+                    >
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                        {predScore !== undefined && (
+                          <>
+                            <span className="text-muted me-2" style={{ minWidth: '22px', fontSize: '0.8rem' }}>{i + 1}.</span>
+                            <span className="fw-bold text-primary me-2" style={{ minWidth: '40px' }}>{predScore}</span>
+                            <span className="badge bg-secondary">{predCount}×</span>
+                          </>
+                        )}
+                      </div>
+                      <div style={{ width: '1px', backgroundColor: '#e3e6f0', alignSelf: 'stretch', margin: '0 8px' }}></div>
+                      <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
+                        {actualScore !== undefined ? (
+                          <>
+                            <span className="text-muted me-2" style={{ minWidth: '22px', fontSize: '0.8rem' }}>{i + 1}.</span>
+                            <span className="fw-bold text-success me-2" style={{ minWidth: '40px' }}>{actualScore}</span>
+                            <span className="badge bg-secondary">{actualCount}×</span>
+                          </>
+                        ) : (
+                          <span className="text-muted" style={{ fontSize: '0.8rem' }}>—</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </Card.Body>
           </Card>

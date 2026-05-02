@@ -117,7 +117,9 @@ export const postApi = {
   uploadImage: (file) => {
     const formData = new FormData();
     formData.append('image', file);
-    return api.post('/posts/upload-image', formData);
+    return api.post('/posts/upload-image', formData, {
+      headers: { 'Content-Type': undefined }
+    });
   }
 };
 
